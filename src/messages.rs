@@ -1,7 +1,8 @@
-/// All message types flowing between actors.
+//! All message types flowing between actors.
 
 /// Semantic UI actions produced by the Input Task after vim mode processing.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum UiAction {
     // Navigation
     ScrollDown,
@@ -76,6 +77,7 @@ pub enum UiAction {
 
 /// Requests sent from App Actor to API Task.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ApiRequest {
     FetchTimeline {
         cursor: Option<String>,
@@ -156,6 +158,7 @@ pub enum ApiRequest {
 
 /// Responses from API Task back to App Actor.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ApiResponse {
     Timeline {
         posts: Vec<Post>,
@@ -168,7 +171,7 @@ pub enum ApiResponse {
     },
     Thread {
         uri: String,
-        thread: PostThread,
+        thread: Box<PostThread>,
     },
     Feed {
         feed_uri: String,
@@ -246,9 +249,10 @@ pub enum ApiResponse {
 
 /// Messages from the App Actor to itself or from background tasks.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum AppMessage {
     Ui(UiAction),
-    Api(ApiResponse),
+    Api(Box<ApiResponse>),
     NotificationPoll(Vec<Notification>, usize),
     ImageReady {
         url: String,
@@ -259,6 +263,7 @@ pub enum AppMessage {
 
 /// A Bluesky post.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Post {
     pub uri: String,
     pub cid: String,
@@ -277,6 +282,7 @@ pub struct Post {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Author {
     pub did: String,
     pub handle: String,
@@ -307,6 +313,7 @@ pub struct ReplyRef {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PostEmbed {
     Images(Vec<EmbedImage>),
     External {
@@ -320,6 +327,7 @@ pub enum PostEmbed {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct EmbedImage {
     pub thumb_url: String,
     pub fullsize_url: String,
@@ -336,6 +344,7 @@ pub struct PostThread {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ProfileData {
     pub did: String,
     pub handle: String,
@@ -353,6 +362,7 @@ pub struct ProfileData {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Notification {
     pub uri: String,
     pub cid: String,
@@ -374,6 +384,7 @@ pub enum NotificationReason {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Conversation {
     pub id: String,
     pub members: Vec<Author>,
@@ -383,6 +394,7 @@ pub struct Conversation {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DirectMessage {
     pub id: String,
     pub sender: Author,
@@ -391,6 +403,7 @@ pub struct DirectMessage {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ImageData {
     Sixel(String),
     Kitty(String),
@@ -406,6 +419,7 @@ pub struct Toast {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum ToastLevel {
     Info,
     Success,
@@ -445,6 +459,7 @@ impl Toast {
         self.created_at.elapsed().as_millis() as u64 >= self.ttl_ms
     }
 
+    #[allow(dead_code)]
     pub fn remaining_fraction(&self) -> f64 {
         let elapsed = self.created_at.elapsed().as_millis() as f64;
         let total = self.ttl_ms as f64;
@@ -522,39 +537,39 @@ pub fn parse_rich_text(text: &str, facets: &[Facet]) -> Vec<RichTextSegment> {
         let start = facet.start.min(bytes.len());
         let end = facet.end.min(bytes.len());
 
-        if pos < start {
-            if let Ok(s) = std::str::from_utf8(&bytes[pos..start]) {
-                segments.push(RichTextSegment {
-                    text: s.to_string(),
-                    kind: RichTextKind::Plain,
-                });
-            }
-        }
-
-        if start < end {
-            if let Ok(s) = std::str::from_utf8(&bytes[start..end]) {
-                let kind = match &facet.kind {
-                    FacetKind::Mention { did } => RichTextKind::Mention(did.clone()),
-                    FacetKind::Link { uri } => RichTextKind::Link(uri.clone()),
-                    FacetKind::Tag { tag } => RichTextKind::Hashtag(tag.clone()),
-                };
-                segments.push(RichTextSegment {
-                    text: s.to_string(),
-                    kind,
-                });
-            }
-        }
-
-        pos = end;
-    }
-
-    if pos < bytes.len() {
-        if let Ok(s) = std::str::from_utf8(&bytes[pos..]) {
+        if pos < start
+            && let Ok(s) = std::str::from_utf8(&bytes[pos..start])
+        {
             segments.push(RichTextSegment {
                 text: s.to_string(),
                 kind: RichTextKind::Plain,
             });
         }
+
+        if start < end
+            && let Ok(s) = std::str::from_utf8(&bytes[start..end])
+        {
+            let kind = match &facet.kind {
+                FacetKind::Mention { did } => RichTextKind::Mention(did.clone()),
+                FacetKind::Link { uri } => RichTextKind::Link(uri.clone()),
+                FacetKind::Tag { tag } => RichTextKind::Hashtag(tag.clone()),
+            };
+            segments.push(RichTextSegment {
+                text: s.to_string(),
+                kind,
+            });
+        }
+
+        pos = end;
+    }
+
+    if pos < bytes.len()
+        && let Ok(s) = std::str::from_utf8(&bytes[pos..])
+    {
+        segments.push(RichTextSegment {
+            text: s.to_string(),
+            kind: RichTextKind::Plain,
+        });
     }
 
     segments

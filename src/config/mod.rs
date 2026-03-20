@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use theme::ThemeDef;
 
 /// Top-level application config, loaded from TOML.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {
     #[serde(default)]
     pub general: GeneralConfig,
@@ -164,18 +164,6 @@ pub struct PaneConfig {
     pub top: Option<Box<PaneConfig>>,
     #[serde(default)]
     pub bottom: Option<Box<PaneConfig>>,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            general: GeneralConfig::default(),
-            auth: AuthConfig::default(),
-            feeds: FeedsConfig::default(),
-            workspaces: HashMap::new(),
-            themes: HashMap::new(),
-        }
-    }
 }
 
 /// Get the config directory path.

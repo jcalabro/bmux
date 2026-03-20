@@ -1,5 +1,5 @@
 use crate::auth::AppAgent;
-use crate::messages::{AppMessage, Notification, Toast};
+use crate::messages::{AppMessage, Toast};
 use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 

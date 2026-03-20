@@ -67,10 +67,8 @@ pub fn render_notifications_pane(
             NotificationReason::Quote => ("📝", theme.secondary, "quoted your post"),
         };
 
-        let bg_style = if is_selected {
+        let _bg_style = if is_selected {
             Style::default().bg(theme.border)
-        } else if !notif.is_read {
-            Style::default()
         } else {
             Style::default()
         };

@@ -175,7 +175,7 @@ async fn main() -> Result<()> {
                         break;
                     }
                 }
-                Ok(Event::Resize(w, h)) => {
+                Ok(Event::Resize(_w, _h)) => {
                     // We could send resize events too, but the terminal
                     // handles this automatically on the next draw.
                 }

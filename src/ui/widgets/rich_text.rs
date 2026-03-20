@@ -27,6 +27,7 @@ pub fn render_rich_text<'a>(text: &'a str, facets: &[Facet], theme: &Theme) -> L
 
 /// Wrap text into multiple lines respecting terminal width.
 /// Returns styled lines.
+#[allow(dead_code)]
 pub fn wrap_rich_text<'a>(
     text: &'a str,
     facets: &[Facet],

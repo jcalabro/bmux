@@ -73,12 +73,12 @@ async fn fetch_and_encode(
             Ok(b) => b,
             Err(e) => {
                 tracing::warn!("Failed to download image {}: {}", request.url, e);
-                return ImageData::AltText(format!("[image: download failed]"));
+                return ImageData::AltText("[image: download failed]".to_string());
             }
         },
         Err(e) => {
             tracing::warn!("Failed to fetch image {}: {}", request.url, e);
-            return ImageData::AltText(format!("[image: fetch failed]"));
+            return ImageData::AltText("[image: fetch failed]".to_string());
         }
     };
 

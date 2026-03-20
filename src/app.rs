@@ -1,6 +1,8 @@
 use crate::config::theme::Theme;
 use crate::config::AppConfig;
-use crate::input::vim::{self, VimMode, VimState};
+use crate::input::vim::{self, VimState};
+#[cfg(test)]
+use crate::input::vim::VimMode;
 use crate::messages::*;
 use crate::ui::pane::*;
 use crate::ui::toast::ToastManager;
@@ -141,7 +143,7 @@ impl App {
     pub fn handle_message(&mut self, msg: AppMessage) {
         match msg {
             AppMessage::Ui(action) => self.handle_ui_action(action),
-            AppMessage::Api(response) => self.handle_api_response(response),
+            AppMessage::Api(response) => self.handle_api_response(*response),
             AppMessage::NotificationPoll(notifs, unread) => {
                 self.unread_notifs = unread;
                 // Update the notifications pane if one exists.
@@ -152,7 +154,7 @@ impl App {
                     }
                 }
             }
-            AppMessage::ImageReady { url, data } => {
+            AppMessage::ImageReady { url, data: _ } => {
                 // TODO: store decoded image data for rendering.
                 tracing::debug!("Image ready: {}", url);
             }
@@ -272,25 +274,24 @@ impl App {
             ApiResponse::Timeline { posts, cursor } => {
                 // Find the feed pane and update its active tab.
                 for pane in self.panes.values_mut() {
-                    if let PaneKind::Feed(ref mut fp) = pane.kind {
-                        if let Some(tab) = fp.active_tab_mut() {
-                            if tab.uri == "following" {
-                                if tab.posts.is_empty() {
-                                    tab.posts = posts.clone();
-                                } else {
-                                    tab.posts.extend(posts.clone());
-                                }
-                                tab.cursor = cursor.clone();
-                                tab.loading = false;
-                            }
+                    if let PaneKind::Feed(ref mut fp) = pane.kind
+                        && let Some(tab) = fp.active_tab_mut()
+                        && tab.uri == "following"
+                    {
+                        if tab.posts.is_empty() {
+                            tab.posts = posts.clone();
+                        } else {
+                            tab.posts.extend(posts.clone());
                         }
+                        tab.cursor = cursor.clone();
+                        tab.loading = false;
                     }
                 }
             }
-            ApiResponse::Thread { uri, thread } => {
+            ApiResponse::Thread { uri: _, thread } => {
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Thread(ref mut tp) = pane.kind {
-                        tp.thread = Some(thread.clone());
+                        tp.thread = Some(*thread.clone());
                         tp.cursor = 0;
                         tp.flatten_thread();
                     }
@@ -303,7 +304,7 @@ impl App {
                     }
                 }
             }
-            ApiResponse::PostCreated { uri } => {
+            ApiResponse::PostCreated { uri: _ } => {
                 self.toast_manager.push(Toast::success("Post created!"));
                 self.vim.enter_normal();
                 // Remove compose pane if there is one.
@@ -323,7 +324,7 @@ impl App {
             ApiResponse::PostUnreposted { post_uri } => {
                 self.update_post_repost(&post_uri, None);
             }
-            ApiResponse::Notifications { notifications, cursor, unread_count } => {
+            ApiResponse::Notifications { notifications, cursor: _, unread_count } => {
                 self.unread_notifs = unread_count;
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Notifications(ref mut np) = pane.kind {
@@ -332,26 +333,26 @@ impl App {
                     }
                 }
             }
-            ApiResponse::Conversations { conversations, cursor } => {
+            ApiResponse::Conversations { conversations, cursor: _ } => {
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Dms(ref mut dp) = pane.kind {
                         dp.conversations = conversations.clone();
                     }
                 }
             }
-            ApiResponse::MessageSent { convo_id } => {
+            ApiResponse::MessageSent { convo_id: _ } => {
                 self.toast_manager.push(Toast::success("Message sent"));
             }
-            ApiResponse::SearchResults { query, posts, cursor } => {
+            ApiResponse::SearchResults { query: _, posts, cursor } => {
                 // Put results in the feed pane.
                 for pane in self.panes.values_mut() {
-                    if let PaneKind::Feed(ref mut fp) = pane.kind {
-                        if let Some(tab) = fp.active_tab_mut() {
-                            tab.posts = posts.clone();
-                            tab.cursor = cursor.clone();
-                            tab.selected = 0;
-                            tab.scroll_offset = 0;
-                        }
+                    if let PaneKind::Feed(ref mut fp) = pane.kind
+                        && let Some(tab) = fp.active_tab_mut()
+                    {
+                        tab.posts = posts.clone();
+                        tab.cursor = cursor.clone();
+                        tab.selected = 0;
+                        tab.scroll_offset = 0;
                     }
                 }
             }
@@ -454,22 +455,22 @@ impl App {
         if let Some(pane) = self.focused_pane_mut() {
             match &mut pane.kind {
                 PaneKind::Feed(fp) => {
-                    if let Some(tab) = fp.active_tab_mut() {
-                        if tab.selected < tab.posts.len().saturating_sub(1) {
-                            tab.selected += 1;
-                            // Auto-scroll if needed.
-                            if tab.selected >= tab.scroll_offset + 5 {
-                                tab.scroll_offset = tab.selected.saturating_sub(4);
-                            }
-                            // Auto-load more when near the end.
-                            if tab.selected >= tab.posts.len().saturating_sub(3)
-                                && !tab.loading
-                                && tab.cursor.is_some()
-                            {
-                                tab.loading = true;
-                                let cursor = tab.cursor.clone();
-                                let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor });
-                            }
+                    if let Some(tab) = fp.active_tab_mut()
+                        && tab.selected < tab.posts.len().saturating_sub(1)
+                    {
+                        tab.selected += 1;
+                        // Auto-scroll if needed.
+                        if tab.selected >= tab.scroll_offset + 5 {
+                            tab.scroll_offset = tab.selected.saturating_sub(4);
+                        }
+                        // Auto-load more when near the end.
+                        if tab.selected >= tab.posts.len().saturating_sub(3)
+                            && !tab.loading
+                            && tab.cursor.is_some()
+                        {
+                            tab.loading = true;
+                            let cursor = tab.cursor.clone();
+                            let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor });
                         }
                     }
                 }
@@ -724,30 +725,30 @@ impl App {
 
     fn submit_post(&mut self) {
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get(&id) {
-            if let PaneKind::Compose(cp) = &pane.kind {
-                if cp.text.trim().is_empty() {
-                    self.toast_manager.push(Toast::error("Post is empty"));
-                    return;
-                }
-                if cp.grapheme_count() > 300 {
-                    self.toast_manager.push(Toast::error("Post exceeds 300 character limit"));
-                    return;
-                }
-                let _ = self.api_tx.try_send(ApiRequest::CreatePost {
-                    text: cp.text.clone(),
-                    reply_to: cp.reply_to.clone(),
-                });
+        if let Some(pane) = self.panes.get(&id)
+            && let PaneKind::Compose(cp) = &pane.kind
+        {
+            if cp.text.trim().is_empty() {
+                self.toast_manager.push(Toast::error("Post is empty"));
+                return;
             }
+            if cp.grapheme_count() > 300 {
+                self.toast_manager.push(Toast::error("Post exceeds 300 character limit"));
+                return;
+            }
+            let _ = self.api_tx.try_send(ApiRequest::CreatePost {
+                text: cp.text.clone(),
+                reply_to: cp.reply_to.clone(),
+            });
         }
     }
 
     fn cancel_compose(&mut self) {
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get(&id) {
-            if matches!(pane.kind, PaneKind::Compose(_)) {
-                self.close_focused_pane();
-            }
+        if let Some(pane) = self.panes.get(&id)
+            && matches!(pane.kind, PaneKind::Compose(_))
+        {
+            self.close_focused_pane();
         }
         self.vim.enter_normal();
     }
@@ -766,10 +767,10 @@ impl App {
         let tmpfile = tmpdir.join("alf_compose.txt");
 
         // If we're in a compose pane, write the current draft.
-        if let Some(pane) = self.focused_pane() {
-            if let PaneKind::Compose(cp) = &pane.kind {
-                let _ = std::fs::write(&tmpfile, &cp.text);
-            }
+        if let Some(pane) = self.focused_pane()
+            && let PaneKind::Compose(cp) = &pane.kind
+        {
+            let _ = std::fs::write(&tmpfile, &cp.text);
         }
 
         // Note: This blocks the event loop. In a real implementation,
@@ -805,10 +806,10 @@ impl App {
 
     fn insert_delete(&mut self) {
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get_mut(&id) {
-            if let PaneKind::Compose(cp) = &mut pane.kind {
-                cp.delete();
-            }
+        if let Some(pane) = self.panes.get_mut(&id)
+            && let PaneKind::Compose(cp) = &mut pane.kind
+        {
+            cp.delete();
         }
     }
 
@@ -816,21 +817,21 @@ impl App {
 
     fn next_feed_tab(&mut self) {
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get_mut(&id) {
-            if let PaneKind::Feed(fp) = &mut pane.kind {
-                fp.next_tab();
-                self.request_feed_data();
-            }
+        if let Some(pane) = self.panes.get_mut(&id)
+            && let PaneKind::Feed(fp) = &mut pane.kind
+        {
+            fp.next_tab();
+            self.request_feed_data();
         }
     }
 
     fn prev_feed_tab(&mut self) {
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get_mut(&id) {
-            if let PaneKind::Feed(fp) = &mut pane.kind {
-                fp.prev_tab();
-                self.request_feed_data();
-            }
+        if let Some(pane) = self.panes.get_mut(&id)
+            && let PaneKind::Feed(fp) = &mut pane.kind
+        {
+            fp.prev_tab();
+            self.request_feed_data();
         }
     }
 
@@ -909,26 +910,24 @@ impl App {
     fn request_feed_data(&self) {
         // Check which feed tab is active and request its data.
         let id = self.focused_pane_id();
-        if let Some(pane) = self.panes.get(&id) {
-            if let PaneKind::Feed(fp) = &pane.kind {
-                if let Some(tab) = fp.active_tab() {
-                    if tab.posts.is_empty() {
-                        match tab.uri.as_str() {
-                            "following" => {
-                                let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
-                            }
-                            "discover" => {
-                                // Discover would use a different feed.
-                                let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
-                            }
-                            uri => {
-                                let _ = self.api_tx.try_send(ApiRequest::FetchFeed {
-                                    feed_uri: uri.to_string(),
-                                    cursor: None,
-                                });
-                            }
-                        }
-                    }
+        if let Some(pane) = self.panes.get(&id)
+            && let PaneKind::Feed(fp) = &pane.kind
+            && let Some(tab) = fp.active_tab()
+            && tab.posts.is_empty()
+        {
+            match tab.uri.as_str() {
+                "following" => {
+                    let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+                }
+                "discover" => {
+                    // Discover would use a different feed.
+                    let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+                }
+                uri => {
+                    let _ = self.api_tx.try_send(ApiRequest::FetchFeed {
+                        feed_uri: uri.to_string(),
+                        cursor: None,
+                    });
                 }
             }
         }

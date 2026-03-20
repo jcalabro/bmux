@@ -42,10 +42,10 @@ pub fn render_status_bar(
             "dms" => "j/k:scroll  l:open  c:compose  ?:help",
             "notifications" => "j/k:scroll  l:open  ?:help",
             "profile" => "j/k:scroll  H/L:tabs  ?:help",
-            "compose" => "Ctrl-Enter:send  Esc:cancel  Ctrl-e:editor",
+            "compose" => "Enter:send  Esc:cancel  Ctrl-e:editor",
             _ => "?:help",
         },
-        VimMode::Insert => "Esc:cancel  Ctrl-Enter:send  Ctrl-a:attach  Ctrl-e:editor",
+        VimMode::Insert => "Esc:cancel  Enter:send  Ctrl-a:attach  Ctrl-e:editor",
         VimMode::Command => "Enter:execute  Esc:cancel",
     };
 

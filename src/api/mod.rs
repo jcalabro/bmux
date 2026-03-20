@@ -17,7 +17,7 @@ pub async fn run_api_task(
 
         tokio::spawn(async move {
             let response = handle_request(&agent, request).await;
-            let _ = tx.send(AppMessage::Api(response)).await;
+            let _ = tx.send(AppMessage::Api(Box::new(response))).await;
         });
     }
 }
@@ -38,7 +38,7 @@ async fn handle_request(agent: &AppAgent, request: ApiRequest) -> ApiResponse {
         }
         ApiRequest::FetchThread { uri } => {
             match client::fetch_thread(agent, &uri).await {
-                Ok(thread) => ApiResponse::Thread { uri, thread },
+                Ok(thread) => ApiResponse::Thread { uri, thread: Box::new(thread) },
                 Err(e) => ApiResponse::Error {
                     request_description: format!("fetch thread {}", uri),
                     error: e.to_string(),

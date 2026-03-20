@@ -20,6 +20,7 @@ use ratatui::Frame;
 use std::collections::HashMap;
 
 /// Render the entire application UI.
+#[allow(clippy::too_many_arguments)]
 pub fn render(
     frame: &mut Frame,
     workspaces: &[Workspace],

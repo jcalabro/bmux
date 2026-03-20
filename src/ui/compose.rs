@@ -1,7 +1,7 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::ComposePane;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
@@ -78,7 +78,7 @@ pub fn render_compose_pane(
             Style::default().fg(count_color),
         ),
         Span::styled(
-            "  Ctrl-Enter:send  Esc:cancel  Ctrl-e:$EDITOR",
+            "  Enter:send  Esc:cancel  Ctrl-e:$EDITOR",
             Style::default().fg(theme.muted),
         ),
     ]);

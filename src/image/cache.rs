@@ -30,10 +30,12 @@ impl ImageCache {
         self.cache.put(key, data);
     }
 
+    #[allow(dead_code)]
     pub fn contains(&self, key: &ImageCacheKey) -> bool {
         self.cache.contains(key)
     }
 
+    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.cache.len()
     }

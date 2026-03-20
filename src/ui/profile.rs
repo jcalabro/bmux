@@ -130,7 +130,7 @@ pub fn render_profile_pane(
         return;
     }
 
-    let tab_names = vec!["Posts", "Replies", "Likes", "Media"];
+    let tab_names = ["Posts", "Replies", "Likes", "Media"];
     let active_idx = match pane.active_tab {
         ProfileTab::Posts => 0,
         ProfileTab::Replies => 1,

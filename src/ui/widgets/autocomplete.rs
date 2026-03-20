@@ -3,11 +3,12 @@ use crate::messages::Author;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem};
 use ratatui::Frame;
 
 /// Autocomplete popup state.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AutocompleteState {
     pub query: String,
     pub suggestions: Vec<Author>,
@@ -15,6 +16,7 @@ pub struct AutocompleteState {
     pub visible: bool,
 }
 
+#[allow(dead_code)]
 impl AutocompleteState {
     pub fn new() -> Self {
         Self {
@@ -59,6 +61,7 @@ impl AutocompleteState {
 }
 
 /// Render the autocomplete popup.
+#[allow(dead_code)]
 pub fn render_autocomplete(
     frame: &mut Frame,
     area: Rect,

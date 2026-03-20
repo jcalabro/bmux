@@ -61,17 +61,17 @@ impl PaneTree {
     pub fn close_leaf(&mut self, target_id: PaneId) -> bool {
         match self {
             PaneTree::Split { first, second, .. } => {
-                if let PaneTree::Leaf { id } = first.as_ref() {
-                    if *id == target_id {
-                        *self = *second.clone();
-                        return true;
-                    }
+                if let PaneTree::Leaf { id } = first.as_ref()
+                    && *id == target_id
+                {
+                    *self = *second.clone();
+                    return true;
                 }
-                if let PaneTree::Leaf { id } = second.as_ref() {
-                    if *id == target_id {
-                        *self = *first.clone();
-                        return true;
-                    }
+                if let PaneTree::Leaf { id } = second.as_ref()
+                    && *id == target_id
+                {
+                    *self = *first.clone();
+                    return true;
                 }
                 first.close_leaf(target_id) || second.close_leaf(target_id)
             }
@@ -123,6 +123,7 @@ impl PaneTree {
     }
 
     /// Find the previous leaf ID before the given one.
+    #[allow(dead_code)]
     pub fn prev_leaf(&self, current: PaneId) -> Option<PaneId> {
         let ids = self.leaf_ids();
         if ids.is_empty() {

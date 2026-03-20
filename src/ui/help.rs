@@ -1,5 +1,5 @@
 use crate::config::theme::Theme;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
@@ -66,7 +66,7 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
         Line::from(Span::styled("Insert Mode", header_style)),
         Line::from(""),
         help_line("Esc", "Cancel / normal mode", key_style, desc_style),
-        help_line("Ctrl-Enter", "Send post", key_style, desc_style),
+        help_line("Enter", "Send post", key_style, desc_style),
         help_line("Ctrl-a", "Attach image", key_style, desc_style),
         help_line("Ctrl-e", "Switch to $EDITOR", key_style, desc_style),
         Line::from(""),

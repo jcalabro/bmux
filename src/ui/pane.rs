@@ -1,14 +1,11 @@
-use crate::config::theme::Theme;
 use crate::messages::*;
 use crate::ui::workspace::PaneId;
-use ratatui::Frame;
-use ratatui::layout::Rect;
 
 /// The different kinds of pane content.
 #[derive(Debug, Clone)]
 pub enum PaneKind {
     Feed(FeedPane),
-    Thread(ThreadPane),
+    Thread(Box<ThreadPane>),
     Profile(ProfilePane),
     Dms(DmsPane),
     Notifications(NotificationsPane),
@@ -17,6 +14,7 @@ pub enum PaneKind {
 
 /// A pane with an ID and its content.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Pane {
     pub id: PaneId,
     pub kind: PaneKind,
@@ -36,11 +34,11 @@ impl Pane {
     pub fn new_thread(id: PaneId) -> Self {
         Self {
             id,
-            kind: PaneKind::Thread(ThreadPane {
+            kind: PaneKind::Thread(Box::new(ThreadPane {
                 thread: None,
                 cursor: 0,
                 flattened: Vec::new(),
-            }),
+            })),
         }
     }
 
@@ -154,10 +152,10 @@ impl ThreadPane {
         depth: usize,
         is_root: bool,
     ) {
-        if is_root {
-            if let Some(parent) = &thread.parent {
-                Self::flatten_parent_chain(out, parent, 0);
-            }
+        if is_root
+            && let Some(parent) = &thread.parent
+        {
+            Self::flatten_parent_chain(out, parent, 0);
         }
 
         out.push(FlattenedThreadEntry {
@@ -186,6 +184,7 @@ impl ThreadPane {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum ProfileTab {
     Posts,
     Replies,
@@ -202,6 +201,7 @@ pub struct ProfilePane {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DmsPane {
     pub conversations: Vec<Conversation>,
     pub active_convo: Option<String>,

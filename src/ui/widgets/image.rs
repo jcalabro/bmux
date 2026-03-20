@@ -1,5 +1,4 @@
 use crate::config::theme::Theme;
-use crate::messages::ImageData;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
@@ -30,10 +29,10 @@ pub fn detect_image_protocol() -> ImageProtocol {
     }
 
     // Check TERM for xterm with Sixel support.
-    if let Ok(term) = std::env::var("TERM") {
-        if term.contains("xterm") {
-            // Could do DA1 query but that's complex; default to none.
-        }
+    if let Ok(term) = std::env::var("TERM")
+        && term.contains("xterm")
+    {
+        // Could do DA1 query but that's complex; default to none.
     }
 
     ImageProtocol::None
@@ -45,11 +44,12 @@ pub fn parse_image_protocol(config_value: &str) -> ImageProtocol {
         "sixel" => ImageProtocol::Sixel,
         "kitty" => ImageProtocol::Kitty,
         "none" => ImageProtocol::None,
-        "auto" | _ => detect_image_protocol(),
+        _ => detect_image_protocol(),
     }
 }
 
 /// Render an image placeholder or alt text.
+#[allow(dead_code)]
 pub fn render_image_placeholder(
     frame: &mut Frame,
     area: Rect,

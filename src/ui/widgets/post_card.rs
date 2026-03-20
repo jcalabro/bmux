@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::messages::Post;
 use crate::ui::widgets::rich_text::render_rich_text;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, Paragraph, Widget};
+use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
 /// Render a single post card.

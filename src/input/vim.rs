@@ -139,7 +139,6 @@ impl VimState {
     fn handle_insert(&mut self, key: KeyEvent) -> Option<UiAction> {
         if key.modifiers.contains(KeyModifiers::CONTROL) {
             return match key.code {
-                KeyCode::Enter => Some(UiAction::SubmitPost),
                 KeyCode::Char('a') => Some(UiAction::AttachImage),
                 KeyCode::Char('e') => Some(UiAction::SwitchToEditor),
                 _ => None,
@@ -151,10 +150,10 @@ impl VimState {
                 self.mode = VimMode::Normal;
                 Some(UiAction::CancelCompose)
             }
+            KeyCode::Enter => Some(UiAction::SubmitPost),
             KeyCode::Char(c) => Some(UiAction::InsertChar(c)),
             KeyCode::Backspace => Some(UiAction::InsertBackspace),
             KeyCode::Delete => Some(UiAction::InsertDelete),
-            KeyCode::Enter => Some(UiAction::InsertNewline),
             KeyCode::Left => Some(UiAction::InsertMoveLeft),
             KeyCode::Right => Some(UiAction::InsertMoveRight),
             KeyCode::Home => Some(UiAction::InsertMoveHome),
@@ -175,8 +174,8 @@ impl VimState {
                 self.command_buffer.clear();
                 self.mode = VimMode::Normal;
 
-                if cmd.starts_with('/') {
-                    self.search_query = cmd[1..].to_string();
+                if let Some(stripped) = cmd.strip_prefix('/') {
+                    self.search_query = stripped.to_string();
                     Some(UiAction::SearchNext)
                 } else {
                     Some(UiAction::Command(cmd))
@@ -333,11 +332,11 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_mode_ctrl_enter_submits() {
+    fn test_insert_mode_enter_submits() {
         let mut state = VimState::new();
         state.mode = VimMode::Insert;
         assert_eq!(
-            state.handle_key(key_ctrl(KeyCode::Enter)),
+            state.handle_key(key(KeyCode::Enter)),
             Some(UiAction::SubmitPost)
         );
     }

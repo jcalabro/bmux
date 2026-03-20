@@ -1,6 +1,5 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::ThreadPane;
-use crate::ui::widgets::rich_text::render_rich_text;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};

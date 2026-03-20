@@ -313,15 +313,14 @@ fn parse_post_view(v: &Value) -> Option<Post> {
 fn parse_feed_view_post(v: &Value) -> Option<Post> {
     let mut post = parse_post_view(&v["post"])?;
 
-    if let Some(reason) = v["reason"].as_object() {
-        if reason
+    if let Some(reason) = v["reason"].as_object()
+        && reason
             .get("$type")
             .and_then(|t| t.as_str())
             .map(|t| t.contains("reasonRepost"))
             .unwrap_or(false)
-        {
-            post.reposted_by = Some(parse_author(&v["reason"]["by"]));
-        }
+    {
+        post.reposted_by = Some(parse_author(&v["reason"]["by"]));
     }
 
     Some(post)

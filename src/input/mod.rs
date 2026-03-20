@@ -6,6 +6,7 @@ use crossterm::event::{self, Event, KeyEventKind};
 use tokio::sync::mpsc;
 
 /// Input task: reads terminal events and translates them through the vim state machine.
+#[allow(dead_code)]
 pub async fn run_input_task(tx: mpsc::Sender<AppMessage>) {
     loop {
         match event::read() {
@@ -49,4 +50,5 @@ pub async fn run_input_task(tx: mpsc::Sender<AppMessage>) {
 /// because the vim state machine needs to know the current mode
 /// which the app actor owns.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct RawKeyEvent(pub crossterm::event::KeyEvent);
