@@ -305,6 +305,7 @@ fn parse_post_view(v: &Value) -> Option<Post> {
         liked_by_me: v["viewer"]["like"].as_str().map(|s| s.to_string()),
         reposted_by_me: v["viewer"]["repost"].as_str().map(|s| s.to_string()),
         reply_to: None,
+        reply_context: None,
         embed,
         reposted_by: None,
     })
@@ -313,6 +314,7 @@ fn parse_post_view(v: &Value) -> Option<Post> {
 fn parse_feed_view_post(v: &Value) -> Option<Post> {
     let mut post = parse_post_view(&v["post"])?;
 
+    // Repost reason.
     if let Some(reason) = v["reason"].as_object()
         && reason
             .get("$type")
@@ -321,6 +323,32 @@ fn parse_feed_view_post(v: &Value) -> Option<Post> {
             .unwrap_or(false)
     {
         post.reposted_by = Some(parse_author(&v["reason"]["by"]));
+    }
+
+    // Reply context: extract parent post info so we can show
+    // "replying to @handle: <text>" inline.
+    if v["reply"].is_object() {
+        let parent = &v["reply"]["parent"];
+        if parent.is_object() && parent["author"].is_object() {
+            let parent_text = parent["record"]["text"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
+            let root = &v["reply"]["root"];
+            let root_author = if root.is_object()
+                && root["author"].is_object()
+                && root["uri"].as_str() != parent["uri"].as_str()
+            {
+                Some(parse_author(&root["author"]))
+            } else {
+                None
+            };
+            post.reply_context = Some(ReplyContext {
+                parent_author: parse_author(&parent["author"]),
+                parent_text,
+                root_author,
+            });
+        }
     }
 
     Some(post)
@@ -363,18 +391,7 @@ fn parse_embed(v: &Value) -> Option<PostEmbed> {
     let type_str = v["$type"].as_str()?;
 
     if type_str.contains("images") {
-        let images = v["images"]
-            .as_array()?
-            .iter()
-            .map(|img| EmbedImage {
-                thumb_url: img["thumb"].as_str().unwrap_or("").to_string(),
-                fullsize_url: img["fullsize"].as_str().unwrap_or("").to_string(),
-                alt: img["alt"].as_str().unwrap_or("").to_string(),
-                width: img["aspectRatio"]["width"].as_u64().map(|n| n as u32),
-                height: img["aspectRatio"]["height"].as_u64().map(|n| n as u32),
-            })
-            .collect();
-        Some(PostEmbed::Images(images))
+        Some(PostEmbed::Images(parse_embed_images(v)))
     } else if type_str.contains("external") {
         Some(PostEmbed::External {
             uri: v["external"]["uri"].as_str().unwrap_or("").to_string(),
@@ -384,13 +401,66 @@ fn parse_embed(v: &Value) -> Option<PostEmbed> {
                 .unwrap_or("")
                 .to_string(),
         })
+    } else if type_str.contains("recordWithMedia") {
+        // Quote post with images attached.
+        let record = parse_quoted_post(&v["record"])?;
+        let images = if v["media"]["$type"]
+            .as_str()
+            .map(|t| t.contains("images"))
+            .unwrap_or(false)
+        {
+            parse_embed_images(&v["media"])
+        } else {
+            vec![]
+        };
+        Some(PostEmbed::RecordWithMedia { record, images })
     } else if type_str.contains("record") {
-        Some(PostEmbed::Record {
-            uri: v["record"]["uri"].as_str().unwrap_or("").to_string(),
-        })
+        // Quote post.
+        let qp = parse_quoted_post(&v["record"])?;
+        Some(PostEmbed::Record(qp))
     } else {
         None
     }
+}
+
+fn parse_embed_images(v: &Value) -> Vec<EmbedImage> {
+    v["images"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|img| EmbedImage {
+                    thumb_url: img["thumb"].as_str().unwrap_or("").to_string(),
+                    fullsize_url: img["fullsize"].as_str().unwrap_or("").to_string(),
+                    alt: img["alt"].as_str().unwrap_or("").to_string(),
+                    width: img["aspectRatio"]["width"].as_u64().map(|n| n as u32),
+                    height: img["aspectRatio"]["height"].as_u64().map(|n| n as u32),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_quoted_post(v: &Value) -> Option<QuotedPost> {
+    // The embed record view has the post at v directly, with author, value (record), etc.
+    // For app.bsky.embed.record#view, the structure is:
+    //   record: { $type, uri, cid, author: {}, value: { text, ... }, ... }
+    let author = if v["author"].is_object() {
+        parse_author(&v["author"])
+    } else {
+        return None;
+    };
+
+    let text = v["value"]["text"]
+        .as_str()
+        .unwrap_or("")
+        .to_string();
+
+    Some(QuotedPost {
+        uri: v["uri"].as_str().unwrap_or("").to_string(),
+        author,
+        text,
+        created_at: v["indexedAt"].as_str().unwrap_or("").to_string(),
+    })
 }
 
 fn parse_thread(v: &Value) -> Option<PostThread> {

@@ -277,6 +277,7 @@ pub struct Post {
     pub liked_by_me: Option<String>,    // like record URI if liked
     pub reposted_by_me: Option<String>, // repost record URI if reposted
     pub reply_to: Option<ReplyRef>,
+    pub reply_context: Option<ReplyContext>,
     pub embed: Option<PostEmbed>,
     pub reposted_by: Option<Author>,
 }
@@ -321,9 +322,30 @@ pub enum PostEmbed {
         title: String,
         description: String,
     },
-    Record {
-        uri: String,
+    Record(QuotedPost),
+    RecordWithMedia {
+        record: QuotedPost,
+        images: Vec<EmbedImage>,
     },
+}
+
+/// A quoted/embedded post shown inline.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct QuotedPost {
+    pub uri: String,
+    pub author: Author,
+    pub text: String,
+    pub created_at: String,
+}
+
+/// Reply context: who this post is replying to.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct ReplyContext {
+    pub parent_author: Author,
+    pub parent_text: String,
+    pub root_author: Option<Author>,
 }
 
 #[derive(Debug, Clone)]

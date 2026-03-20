@@ -4,9 +4,9 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 
 /// Convert post text with facets into styled ratatui Spans.
-pub fn render_rich_text<'a>(text: &'a str, facets: &[Facet], theme: &Theme) -> Line<'a> {
+pub fn render_rich_text(text: &str, facets: &[Facet], theme: &Theme) -> Line<'static> {
     let segments = parse_rich_text(text, facets);
-    let spans: Vec<Span<'a>> = segments
+    let spans: Vec<Span<'static>> = segments
         .into_iter()
         .map(|seg| {
             let style = match &seg.kind {

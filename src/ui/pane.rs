@@ -374,6 +374,7 @@ mod tests {
             liked_by_me: None,
             reposted_by_me: None,
             reply_to: None,
+            reply_context: None,
             embed: None,
             reposted_by: None,
         };
