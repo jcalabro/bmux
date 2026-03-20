@@ -132,6 +132,7 @@ pub async fn create_post(
     agent: &AppAgent,
     text: &str,
     reply_to: Option<&ReplyRef>,
+    quote: Option<&QuoteRef>,
 ) -> Result<String> {
     let mut record = serde_json::json!({
         "$type": "app.bsky.feed.post",
@@ -143,6 +144,13 @@ pub async fn create_post(
         record["reply"] = serde_json::json!({
             "root": { "uri": reply.root_uri, "cid": reply.root_cid },
             "parent": { "uri": reply.parent_uri, "cid": reply.parent_cid }
+        });
+    }
+
+    if let Some(quote) = quote {
+        record["embed"] = serde_json::json!({
+            "$type": "app.bsky.embed.record",
+            "record": { "uri": quote.uri, "cid": quote.cid }
         });
     }
 

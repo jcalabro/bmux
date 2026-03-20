@@ -45,6 +45,7 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
         help_line("f", "Like post", key_style, desc_style),
         help_line("b", "Repost", key_style, desc_style),
         help_line("r", "Reply", key_style, desc_style),
+        help_line("t", "Quote post", key_style, desc_style),
         help_line("c", "Compose new post", key_style, desc_style),
         help_line("E", "Compose in $EDITOR", key_style, desc_style),
         help_line("p", "Open profile", key_style, desc_style),

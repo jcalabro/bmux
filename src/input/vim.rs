@@ -109,6 +109,10 @@ impl VimState {
                 self.mode = VimMode::Insert;
                 Some(UiAction::Reply)
             }
+            KeyCode::Char('t') => {
+                self.mode = VimMode::Insert;
+                Some(UiAction::QuotePost)
+            }
             KeyCode::Char('c') => {
                 self.mode = VimMode::Insert;
                 Some(UiAction::ComposeNew)

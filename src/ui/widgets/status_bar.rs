@@ -37,8 +37,8 @@ pub fn render_status_bar(
 
     let hints = match mode {
         VimMode::Normal => match focused_pane_type {
-            "feed" => "j/k:scroll  l:thread  f:like  b:repost  r:reply  c:compose  /:search  ?:help",
-            "thread" => "j/k:scroll  h:back  f:like  b:repost  r:reply  ?:help",
+            "feed" => "j/k:scroll  l:thread  f:like  b:repost  r:reply  t:quote  c:compose  /:search  ?:help",
+            "thread" => "j/k:scroll  h:back  f:like  b:repost  r:reply  t:quote  ?:help",
             "dms" => "j/k:scroll  l:open  c:compose  ?:help",
             "notifications" => "j/k:scroll  l:open  ?:help",
             "profile" => "j/k:scroll  H/L:tabs  ?:help",

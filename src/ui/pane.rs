@@ -79,12 +79,17 @@ impl Pane {
         }
     }
 
-    pub fn new_compose(id: PaneId, reply_to: Option<ReplyRef>) -> Self {
+    pub fn new_compose(
+        id: PaneId,
+        reply_to: Option<ReplyRef>,
+        quote: Option<QuoteRef>,
+    ) -> Self {
         Self {
             id,
             kind: PaneKind::Compose(ComposePane {
                 text: String::new(),
                 reply_to,
+                quote,
                 cursor_pos: 0,
             }),
         }
@@ -222,6 +227,7 @@ pub struct NotificationsPane {
 pub struct ComposePane {
     pub text: String,
     pub reply_to: Option<ReplyRef>,
+    pub quote: Option<QuoteRef>,
     pub cursor_pos: usize,
 }
 
@@ -287,6 +293,7 @@ mod tests {
         let mut compose = ComposePane {
             text: String::new(),
             reply_to: None,
+            quote: None,
             cursor_pos: 0,
         };
         compose.insert_char('h');
@@ -300,6 +307,7 @@ mod tests {
         let mut compose = ComposePane {
             text: "hello".into(),
             reply_to: None,
+            quote: None,
             cursor_pos: 5,
         };
         compose.backspace();
@@ -312,6 +320,7 @@ mod tests {
         let mut compose = ComposePane {
             text: "hello".into(),
             reply_to: None,
+            quote: None,
             cursor_pos: 0,
         };
         compose.backspace(); // should do nothing
@@ -323,6 +332,7 @@ mod tests {
         let mut compose = ComposePane {
             text: "hello".into(),
             reply_to: None,
+            quote: None,
             cursor_pos: 0,
         };
         compose.delete();
@@ -334,6 +344,7 @@ mod tests {
         let mut compose = ComposePane {
             text: "hello".into(),
             reply_to: None,
+            quote: None,
             cursor_pos: 0,
         };
         assert_eq!(compose.grapheme_count(), 5);

@@ -28,6 +28,8 @@ pub fn render_compose_pane(
 
     let title = if pane.reply_to.is_some() {
         " Reply "
+    } else if pane.quote.is_some() {
+        " Quote Post "
     } else {
         " New Post "
     };

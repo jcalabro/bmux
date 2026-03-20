@@ -54,8 +54,8 @@ async fn handle_request(agent: &AppAgent, request: ApiRequest) -> ApiResponse {
                 },
             }
         }
-        ApiRequest::CreatePost { text, reply_to } => {
-            match client::create_post(agent, &text, reply_to.as_ref()).await {
+        ApiRequest::CreatePost { text, reply_to, quote } => {
+            match client::create_post(agent, &text, reply_to.as_ref(), quote.as_ref()).await {
                 Ok(uri) => ApiResponse::PostCreated { uri },
                 Err(e) => ApiResponse::Error {
                     request_description: "create post".into(),

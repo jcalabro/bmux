@@ -18,6 +18,7 @@ pub enum UiAction {
     Like,
     Repost,
     Reply,
+    QuotePost,
     ComposeNew,
     ComposeInEditor,
     OpenProfile,
@@ -96,6 +97,7 @@ pub enum ApiRequest {
     CreatePost {
         text: String,
         reply_to: Option<ReplyRef>,
+        quote: Option<QuoteRef>,
     },
     LikePost {
         uri: String,
@@ -311,6 +313,12 @@ pub struct ReplyRef {
     pub root_cid: String,
     pub parent_uri: String,
     pub parent_cid: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct QuoteRef {
+    pub uri: String,
+    pub cid: String,
 }
 
 #[derive(Debug, Clone)]

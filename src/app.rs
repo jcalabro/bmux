@@ -225,6 +225,7 @@ impl App {
             UiAction::Like => self.toggle_like(),
             UiAction::Repost => self.toggle_repost(),
             UiAction::Reply => self.start_reply(),
+            UiAction::QuotePost => self.start_quote(),
             UiAction::ComposeNew => self.start_compose(),
             UiAction::ComposeInEditor => self.compose_in_editor(),
             UiAction::OpenProfile => self.open_profile(),
@@ -712,22 +713,11 @@ impl App {
     // ── Compose ─────────────────────────────────────────────
 
     fn start_compose(&mut self) {
-        let id = self.alloc_pane_id();
-        let pane = Pane::new_compose(id, None);
-        self.panes.insert(id, pane);
-
-        let focused_id = self.focused_pane_id();
-        self.active_ws_mut()
-            .pane_tree
-            .split_leaf(focused_id, id, SplitDirection::Horizontal, 0.7);
-        self.active_ws_mut().focused_pane = id;
-        self.vim.enter_insert();
+        self.open_compose_pane(None, None);
     }
 
     fn start_reply(&mut self) {
         if let Some(post) = self.selected_post().cloned() {
-            // If the post is itself a reply, use its root as our root.
-            // Otherwise, the post we're replying to IS the root.
             let (root_uri, root_cid) = if let Some(ref rt) = post.reply_to {
                 (rt.root_uri.clone(), rt.root_cid.clone())
             } else {
@@ -741,17 +731,35 @@ impl App {
                 parent_cid: post.cid.clone(),
             };
 
-            let id = self.alloc_pane_id();
-            let pane = Pane::new_compose(id, Some(reply_ref));
-            self.panes.insert(id, pane);
-
-            let focused_id = self.focused_pane_id();
-            self.active_ws_mut()
-                .pane_tree
-                .split_leaf(focused_id, id, SplitDirection::Horizontal, 0.7);
-            self.active_ws_mut().focused_pane = id;
-            self.vim.enter_insert();
+            self.open_compose_pane(Some(reply_ref), None);
         }
+    }
+
+    fn start_quote(&mut self) {
+        if let Some(post) = self.selected_post().cloned() {
+            let quote_ref = QuoteRef {
+                uri: post.uri.clone(),
+                cid: post.cid.clone(),
+            };
+            self.open_compose_pane(None, Some(quote_ref));
+        }
+    }
+
+    fn open_compose_pane(
+        &mut self,
+        reply_to: Option<ReplyRef>,
+        quote: Option<QuoteRef>,
+    ) {
+        let id = self.alloc_pane_id();
+        let pane = Pane::new_compose(id, reply_to, quote);
+        self.panes.insert(id, pane);
+
+        let focused_id = self.focused_pane_id();
+        self.active_ws_mut()
+            .pane_tree
+            .split_leaf(focused_id, id, SplitDirection::Horizontal, 0.7);
+        self.active_ws_mut().focused_pane = id;
+        self.vim.enter_insert();
     }
 
     fn submit_post(&mut self) {
@@ -771,6 +779,7 @@ impl App {
             let _ = self.api_tx.try_send(ApiRequest::CreatePost {
                 text: cp.text.clone(),
                 reply_to: cp.reply_to.clone(),
+                quote: cp.quote.clone(),
             });
             // Close the compose pane and return to normal mode immediately.
             self.cancel_compose();
