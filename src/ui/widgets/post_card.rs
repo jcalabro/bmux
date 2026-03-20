@@ -397,19 +397,21 @@ fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
     result
 }
 
-/// Truncate text to fit within a max width, adding ellipsis.
+/// Truncate text to fit within a max character width, adding ellipsis.
 fn truncate_text(text: &str, max_len: usize) -> String {
     // Collapse newlines to spaces for inline preview.
     let flat: String = text
         .chars()
         .map(|c| if c == '\n' { ' ' } else { c })
         .collect();
-    if flat.len() <= max_len {
+    let char_count = flat.chars().count();
+    if char_count <= max_len {
         flat
     } else if max_len > 3 {
-        format!("{}...", &flat[..max_len - 3])
+        let truncated: String = flat.chars().take(max_len - 3).collect();
+        format!("{}...", truncated)
     } else {
-        flat[..max_len].to_string()
+        flat.chars().take(max_len).collect()
     }
 }
 

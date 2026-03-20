@@ -42,21 +42,12 @@ impl ToastManager {
             return;
         }
 
-        let toast_width = 50.min(area.width.saturating_sub(4));
-        let toast_height = 3u16;
+        // Max width: 80% of the screen, capped at 80 cols, min 30.
+        let max_toast_width = (area.width * 4 / 5).clamp(30, 80);
 
-        for (i, toast) in visible.iter().enumerate() {
-            let y_offset = area
-                .height
-                .saturating_sub((i as u16 + 1) * (toast_height + 1) + 2);
-            let x_offset = area.width.saturating_sub(toast_width + 2);
+        let mut y_cursor = area.height.saturating_sub(3);
 
-            let toast_area = Rect::new(x_offset, y_offset, toast_width, toast_height);
-
-            if toast_area.y < area.y || toast_area.height == 0 {
-                continue;
-            }
-
+        for toast in &visible {
             let (icon, border_color) = match toast.level {
                 ToastLevel::Info => ("ℹ", theme.accent),
                 ToastLevel::Success => ("✓", theme.success),
@@ -64,25 +55,65 @@ impl ToastManager {
                 ToastLevel::Error => ("✗", theme.error),
             };
 
+            let prefix = format!(" {} ", icon);
+            // +2 for borders, +prefix len for icon
+            let content_width = max_toast_width.saturating_sub(2) as usize;
+            let prefix_len = 3; // " X "
+            let msg_width = content_width.saturating_sub(prefix_len);
+
+            // Wrap the message into lines that fit (char-aware).
+            let msg = &toast.message;
+            let wrapped: Vec<String> = if msg.chars().count() <= msg_width {
+                vec![msg.clone()]
+            } else {
+                let chars: Vec<char> = msg.chars().collect();
+                chars
+                    .chunks(msg_width.max(1))
+                    .map(|chunk| chunk.iter().collect())
+                    .collect()
+            };
+
+            let line_count = wrapped.len() as u16;
+            let toast_height = line_count + 2; // +2 for borders
+            let toast_width = max_toast_width.min(area.width.saturating_sub(2));
+
+            if y_cursor < toast_height + area.y {
+                break;
+            }
+            y_cursor = y_cursor.saturating_sub(toast_height);
+
+            let x_offset = area.width.saturating_sub(toast_width + 1);
+            let toast_area = Rect::new(x_offset, y_cursor, toast_width, toast_height);
+
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(border_color));
 
-            let text = Line::from(vec![
-                Span::styled(
-                    format!(" {} ", icon),
-                    Style::default()
-                        .fg(border_color)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(&toast.message, Style::default().fg(theme.fg)),
-            ]);
+            let mut lines = Vec::with_capacity(wrapped.len());
+            for (li, line_text) in wrapped.iter().enumerate() {
+                let mut spans = Vec::new();
+                if li == 0 {
+                    spans.push(Span::styled(
+                        prefix.clone(),
+                        Style::default()
+                            .fg(border_color)
+                            .add_modifier(Modifier::BOLD),
+                    ));
+                } else {
+                    spans.push(Span::raw("   ")); // align with first line
+                }
+                spans.push(Span::styled(line_text.clone(), Style::default().fg(theme.fg)));
+                lines.push(Line::from(spans));
+            }
 
             frame.render_widget(Clear, toast_area);
-            let paragraph = Paragraph::new(text)
+            let paragraph = Paragraph::new(lines)
                 .block(block)
                 .style(Style::default().bg(theme.bg));
             frame.render_widget(paragraph, toast_area);
+
+            // Gap between toasts.
+            y_cursor = y_cursor.saturating_sub(1);
         }
     }
 }

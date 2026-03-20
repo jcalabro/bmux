@@ -45,7 +45,6 @@ pub fn ensure_data_dir() -> Result<PathBuf> {
 
 /// Create an OAuth client with file-backed token storage.
 fn create_oauth_client(token_path: &std::path::Path) -> Result<OAuthClientType> {
-    // Ensure parent directory exists.
     if let Some(parent) = token_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -64,10 +63,8 @@ pub async fn try_restore_session(
 ) -> Option<AppAgent> {
     let client = create_oauth_client(token_path).ok()?;
 
-    // We need the DID and session_id to restore. Read them from the token file.
     let saved = read_saved_session_info(token_path)?;
 
-    // Only restore if the saved session matches the requested identifier.
     if !saved.identifier_matches(identifier) {
         tracing::info!(
             "Saved session is for {}, not {}; skipping restore",
@@ -102,6 +99,10 @@ pub async fn try_restore_session(
 }
 
 /// Run the OAuth browser login flow.
+///
+/// Note: DMs (chat.bsky.convo) require `transition:chat.bsky` scope, but
+/// jacquard's Scope enum doesn't support it yet. DMs will show a graceful
+/// error until jacquard adds support.
 pub async fn login_with_browser(
     token_path: &std::path::Path,
     identifier: &str,
@@ -113,7 +114,7 @@ pub async fn login_with_browser(
         host: "127.0.0.1".into(),
         port: LoopbackPort::Fixed(redirect_port),
         open_browser: true,
-        timeout_ms: 5 * 60 * 1000, // 5 minutes
+        timeout_ms: 5 * 60 * 1000,
     };
 
     eprintln!("Opening browser for Bluesky login...");
@@ -145,8 +146,6 @@ pub async fn login_with_browser(
 }
 
 // ── Session info persistence ─────────────────────────────────
-// We save a small metadata file alongside the token file so we can
-// restore sessions without knowing the DID/session_id upfront.
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SavedSessionInfo {
@@ -159,7 +158,7 @@ struct SavedSessionInfo {
 impl SavedSessionInfo {
     fn identifier_matches(&self, identifier: &str) -> bool {
         if identifier.is_empty() {
-            return true; // No filter — restore whatever we have.
+            return true;
         }
         self.did == identifier
             || self.handle == identifier
@@ -191,7 +190,6 @@ fn save_session_info(
     let path = session_info_path(token_path);
     let json = serde_json::to_string_pretty(&info)?;
 
-    // Atomic write: write to tmp, then rename.
     let tmp_path = path.with_extension("tmp");
     std::fs::write(&tmp_path, &json)
         .with_context(|| format!("Failed to write session info to {}", tmp_path.display()))?;
@@ -217,8 +215,6 @@ async fn resolve_handle_from_session(
     session: &super::OAuthSessionType,
     did: &str,
 ) -> Option<String> {
-    // Make a simple unauthenticated-style call to get the handle.
-    // We use the session's XRPC capabilities.
     let result =
         super::oauth_xrpc_get(session, "app.bsky.actor.getProfile", &[("actor", did)]).await;
 
@@ -273,7 +269,7 @@ mod tests {
         assert!(info.identifier_matches("alice.bsky.social"));
         assert!(info.identifier_matches("@alice.bsky.social"));
         assert!(info.identifier_matches("did:plc:abc123"));
-        assert!(info.identifier_matches("")); // empty matches all
+        assert!(info.identifier_matches(""));
         assert!(!info.identifier_matches("bob.bsky.social"));
         assert!(!info.identifier_matches("did:plc:other"));
     }
@@ -322,8 +318,6 @@ mod tests {
     fn test_ensure_data_dir_creates_directory() {
         let dir = tempfile::tempdir().unwrap();
         let test_dir = dir.path().join("test_bmux_data");
-        // Override wouldn't work here since data_dir() uses dirs crate,
-        // but we can test the fs operations directly.
         std::fs::create_dir_all(&test_dir).unwrap();
         assert!(test_dir.exists());
     }
@@ -333,12 +327,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let nested = dir.path().join("a/b/c/tokens.json");
 
-        // Parent dir doesn't exist yet.
         assert!(!nested.parent().unwrap().exists());
 
-        // save_session_info doesn't create parent dirs for the info file,
-        // but the info file goes alongside the token file.
-        // Let's create the parent first like the real flow would.
         std::fs::create_dir_all(nested.parent().unwrap()).unwrap();
         save_session_info(&nested, "did:plc:x", "s1", "handle").unwrap();
 
@@ -351,17 +341,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let token_path = dir.path().join("tokens.json");
 
-        // Write initial.
         save_session_info(&token_path, "did:plc:v1", "s1", "v1.bsky.social").unwrap();
-
-        // Overwrite.
         save_session_info(&token_path, "did:plc:v2", "s2", "v2.bsky.social").unwrap();
 
         let info = read_saved_session_info(&token_path).unwrap();
         assert_eq!(info.did, "did:plc:v2");
         assert_eq!(info.session_id, "s2");
 
-        // No tmp file should remain.
         let tmp = session_info_path(&token_path).with_extension("tmp");
         assert!(!tmp.exists());
     }
@@ -375,7 +361,6 @@ mod tests {
             display_id: "@alice.bsky.social".into(),
         };
 
-        // Handle with and without @ should both match.
         assert!(info.identifier_matches("alice.bsky.social"));
         assert!(info.identifier_matches("@alice.bsky.social"));
     }
@@ -389,7 +374,6 @@ mod tests {
             display_id: "@test.bsky.social".into(),
         };
 
-        // DID should match exactly.
         assert!(info.identifier_matches("did:plc:abc123"));
         assert!(!info.identifier_matches("did:plc:different"));
         assert!(!info.identifier_matches("did:web:abc123"));
@@ -397,12 +381,9 @@ mod tests {
 
     #[test]
     fn test_token_file_path_xdg_compliance() {
-        // Default path should be under a data directory, not config.
         let path = token_file_path(None);
         let path_str = path.to_string_lossy();
 
-        // Should NOT be under .config (that's for config, not runtime data).
-        // Should be under .local/share or equivalent XDG data dir.
         assert!(
             path_str.contains(".local/share") || path_str.contains("share"),
             "Token file should be in XDG data dir, got: {}",
@@ -414,8 +395,6 @@ mod tests {
     fn test_data_dir_separate_from_config_dir() {
         let data = data_dir();
         let config = crate::config::config_dir();
-
-        // Data and config dirs should be different paths.
         assert_ne!(data, config);
     }
 
@@ -436,7 +415,6 @@ mod tests {
         assert_eq!(info.handle, handle);
         assert_eq!(info.display_id, format!("@{}", handle));
 
-        // The info should also be matchable.
         assert!(info.identifier_matches(handle));
         assert!(info.identifier_matches(did));
     }
@@ -451,9 +429,7 @@ mod tests {
         let info_path = session_info_path(&token_path);
         let contents = std::fs::read_to_string(info_path).unwrap();
 
-        // Pretty-printed JSON should have newlines.
         assert!(contents.contains('\n'));
-        // Should be valid JSON.
         let _: serde_json::Value = serde_json::from_str(&contents).unwrap();
     }
 
@@ -462,7 +438,6 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let token_path = dir.path().join("tokens.json");
 
-        // No saved session file → should return None.
         let result = try_restore_session(&token_path, "alice.bsky.social").await;
         assert!(result.is_none());
     }
@@ -472,10 +447,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let token_path = dir.path().join("tokens.json");
 
-        // Save session info for alice.
         save_session_info(&token_path, "did:plc:alice", "s1", "alice.bsky.social").unwrap();
 
-        // Try to restore for bob → should return None (identifier mismatch).
         let result = try_restore_session(&token_path, "bob.bsky.social").await;
         assert!(result.is_none());
     }
@@ -485,15 +458,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let token_path = dir.path().join("tokens.json");
 
-        // Save session info.
         save_session_info(&token_path, "did:plc:anyone", "s1", "anyone.bsky.social").unwrap();
 
-        // Empty identifier should match any saved session.
-        // (Will still fail to actually restore since there's no real token file,
-        // but the identifier_matches check should pass.)
         let result = try_restore_session(&token_path, "").await;
-        // Will be None because create_oauth_client + restore will fail,
-        // but it should at least attempt the restore (not skip due to mismatch).
         assert!(result.is_none());
     }
 
@@ -502,10 +469,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let nested = dir.path().join("deeply/nested/dir/tokens.json");
 
-        // Parent doesn't exist yet.
         assert!(!nested.parent().unwrap().exists());
 
-        // create_oauth_client should create parent dirs.
         let result = create_oauth_client(&nested);
         assert!(result.is_ok());
         assert!(nested.parent().unwrap().exists());

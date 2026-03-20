@@ -10,6 +10,9 @@ use jacquard::oauth::client::OAuthSession;
 use jacquard::oauth::session::DpopClientData;
 use jacquard::prelude::DpopExt;
 
+/// Proxy header required for chat.bsky.* endpoints.
+const CHAT_PROXY: &str = "did:web:api.bsky.chat#bsky_chat";
+
 /// Concrete OAuth session type used throughout the app.
 pub type OAuthSessionType = OAuthSession<JacquardResolver, FileAuthStore>;
 
@@ -103,12 +106,11 @@ async fn app_password_xrpc_get(
     let client = reqwest::Client::new();
     let url = format!("{}/xrpc/{}", service, method);
 
-    let resp = client
-        .get(&url)
-        .bearer_auth(jwt)
-        .query(params)
-        .send()
-        .await?;
+    let mut req = client.get(&url).bearer_auth(jwt).query(params);
+    if method.starts_with("chat.bsky.") {
+        req = req.header("Atproto-Proxy", CHAT_PROXY);
+    }
+    let resp = req.send().await?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -128,7 +130,11 @@ async fn app_password_xrpc_post(
     let client = reqwest::Client::new();
     let url = format!("{}/xrpc/{}", service, method);
 
-    let resp = client.post(&url).bearer_auth(jwt).json(body).send().await?;
+    let mut req = client.post(&url).bearer_auth(jwt).json(body);
+    if method.starts_with("chat.bsky.") {
+        req = req.header("Atproto-Proxy", CHAT_PROXY);
+    }
+    let resp = req.send().await?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -156,11 +162,14 @@ async fn oauth_xrpc_get(
     }
     let url = parsed_url.to_string();
 
-    let request = http::Request::builder()
+    let mut builder = http::Request::builder()
         .method(http::Method::GET)
         .uri(&url)
-        .header("Authorization", format!("DPoP {}", token))
-        .body(vec![])?;
+        .header("Authorization", format!("DPoP {}", token));
+    if method.starts_with("chat.bsky.") {
+        builder = builder.header("Atproto-Proxy", CHAT_PROXY);
+    }
+    let request = builder.body(vec![])?;
 
     let response = session
         .client
@@ -188,12 +197,15 @@ async fn oauth_xrpc_post(session: &OAuthSessionType, method: &str, body: &Value)
     let url = format!("{}/xrpc/{}", base_url, method);
     let body_bytes = serde_json::to_vec(body)?;
 
-    let request = http::Request::builder()
+    let mut builder = http::Request::builder()
         .method(http::Method::POST)
         .uri(&url)
         .header("Authorization", format!("DPoP {}", token))
-        .header("Content-Type", "application/json")
-        .body(body_bytes)?;
+        .header("Content-Type", "application/json");
+    if method.starts_with("chat.bsky.") {
+        builder = builder.header("Atproto-Proxy", CHAT_PROXY);
+    }
+    let request = builder.body(body_bytes)?;
 
     let response = session
         .client
