@@ -292,6 +292,9 @@ fn parse_post_view(v: &Value) -> Option<Post> {
     let facets = parse_facets(&v["record"]["facets"]);
     let embed = parse_embed(&v["embed"]);
 
+    // Parse the post's own reply ref from the record data.
+    let reply_to = parse_reply_ref(&v["record"]["reply"]);
+
     Some(Post {
         uri: uri.to_string(),
         cid: cid.to_string(),
@@ -304,7 +307,7 @@ fn parse_post_view(v: &Value) -> Option<Post> {
         reply_count: v["replyCount"].as_u64().unwrap_or(0),
         liked_by_me: v["viewer"]["like"].as_str().map(|s| s.to_string()),
         reposted_by_me: v["viewer"]["repost"].as_str().map(|s| s.to_string()),
-        reply_to: None,
+        reply_to,
         reply_context: None,
         embed,
         reposted_by: None,
@@ -460,6 +463,18 @@ fn parse_quoted_post(v: &Value) -> Option<QuotedPost> {
         author,
         text,
         created_at: v["indexedAt"].as_str().unwrap_or("").to_string(),
+    })
+}
+
+fn parse_reply_ref(v: &Value) -> Option<ReplyRef> {
+    if !v.is_object() {
+        return None;
+    }
+    Some(ReplyRef {
+        root_uri: v["root"]["uri"].as_str()?.to_string(),
+        root_cid: v["root"]["cid"].as_str()?.to_string(),
+        parent_uri: v["parent"]["uri"].as_str()?.to_string(),
+        parent_cid: v["parent"]["cid"].as_str()?.to_string(),
     })
 }
 

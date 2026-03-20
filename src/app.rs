@@ -726,9 +726,17 @@ impl App {
 
     fn start_reply(&mut self) {
         if let Some(post) = self.selected_post().cloned() {
+            // If the post is itself a reply, use its root as our root.
+            // Otherwise, the post we're replying to IS the root.
+            let (root_uri, root_cid) = if let Some(ref rt) = post.reply_to {
+                (rt.root_uri.clone(), rt.root_cid.clone())
+            } else {
+                (post.uri.clone(), post.cid.clone())
+            };
+
             let reply_ref = ReplyRef {
-                root_uri: post.uri.clone(),
-                root_cid: post.cid.clone(),
+                root_uri,
+                root_cid,
                 parent_uri: post.uri.clone(),
                 parent_cid: post.cid.clone(),
             };
