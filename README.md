@@ -1,6 +1,6 @@
 # bmux
 
-The tmux of bsky
+tmux for bsky
 
 ## Install
 
