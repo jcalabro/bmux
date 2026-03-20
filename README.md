@@ -1,6 +1,6 @@
 # bmux
 
-tmux for bsky
+tmux for bsky and the atmosphere
 
 <img src="https://github.com/user-attachments/assets/a6750bb9-10d9-4e98-9ded-bd4b84cd8b5b" />
 
