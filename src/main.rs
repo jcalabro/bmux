@@ -19,7 +19,6 @@ use ratatui::prelude::*;
 use std::io;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
-use ui::widgets::image::parse_image_protocol;
 
 /// alf — the tmux of Bluesky
 #[derive(Parser, Debug)]
@@ -121,7 +120,7 @@ async fn main() -> Result<()> {
 
     let (app_tx, mut app_rx) = mpsc::channel::<AppMessage>(256);
     let (api_tx, api_rx) = mpsc::channel::<ApiRequest>(128);
-    let (_img_tx, img_rx) = mpsc::channel::<messages::ImageRequest>(64);
+    let (img_tx, img_rx) = mpsc::channel::<messages::ImageRequest>(64);
 
     // ── Spawn background tasks ──────────────────────────────
 
@@ -138,16 +137,15 @@ async fn main() -> Result<()> {
         poll::run_poll_task(poll_agent, poll_tx, poll_interval).await;
     });
 
-    let image_protocol = parse_image_protocol(&app_config.general.image_protocol);
     let image_cache = Arc::new(Mutex::new(ImageCache::new(100)));
     let img_app_tx = app_tx.clone();
     tokio::spawn(async move {
-        crate::image::run_image_task(img_rx, img_app_tx, image_protocol, image_cache).await;
+        crate::image::run_image_task(img_rx, img_app_tx, image_cache).await;
     });
 
     // ── Create the App ──────────────────────────────────────
 
-    let mut app = App::new(app_config, api_tx, user_handle);
+    let mut app = App::new(app_config, api_tx, img_tx, user_handle);
     app.request_initial_data();
 
     // ── Set up terminal ─────────────────────────────────────

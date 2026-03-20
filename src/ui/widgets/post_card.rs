@@ -6,6 +6,9 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
+use ratatui_image::StatefulImage;
+use ratatui_image::protocol::StatefulProtocol;
+use std::collections::HashMap;
 
 /// Render a single post card.
 pub fn render_post_card(
@@ -14,6 +17,7 @@ pub fn render_post_card(
     post: &Post,
     theme: &Theme,
     selected: bool,
+    image_protos: &mut HashMap<String, StatefulProtocol>,
 ) {
     if area.height < 3 || area.width < 10 {
         return;
@@ -41,6 +45,35 @@ pub fn render_post_card(
     let text = Text::from(lines);
     let paragraph = Paragraph::new(text);
     frame.render_widget(paragraph, inner);
+
+    // Render actual images if available.
+    // Find where images would be positioned and render them.
+    if let Some(embed) = &post.embed {
+        let image_urls = get_image_urls(embed);
+        if !image_urls.is_empty() {
+            // Calculate approximate Y position for images (after text, before engagement).
+            let text_lines_count = post.text.lines().count().max(1) as u16;
+            let reply_lines = if post.reply_context.is_some() { 2 } else { 0 };
+            let repost_line = if post.reposted_by.is_some() { 1 } else { 0 };
+            let img_y = inner.y + repost_line + reply_lines + 1 + text_lines_count + 1;
+
+            let img_height = 6u16; // ~6 rows per image
+            for (i, url) in image_urls.iter().enumerate() {
+                if let Some(proto) = image_protos.get_mut(*url) {
+                    let img_area = Rect::new(
+                        inner.x + 2,
+                        img_y + (i as u16 * img_height),
+                        inner.width.saturating_sub(4),
+                        img_height.min(inner.height.saturating_sub(img_y - inner.y + i as u16 * img_height)),
+                    );
+                    if img_area.height > 0 && img_area.y + img_area.height <= inner.y + inner.height {
+                        let image_widget = StatefulImage::default();
+                        frame.render_stateful_widget(image_widget, img_area, proto);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Build all the lines for a post card.
@@ -278,6 +311,17 @@ fn render_quoted_post_lines(
         format!("  └{}┘", "─".repeat(bar_width)),
         Style::default().fg(theme.border),
     )));
+}
+
+/// Get all image thumbnail URLs from an embed.
+fn get_image_urls(embed: &PostEmbed) -> Vec<&str> {
+    match embed {
+        PostEmbed::Images(images) => images.iter().map(|img| img.thumb_url.as_str()).collect(),
+        PostEmbed::RecordWithMedia { images, .. } => {
+            images.iter().map(|img| img.thumb_url.as_str()).collect()
+        }
+        _ => vec![],
+    }
 }
 
 /// Estimate how many rows a post card will take.

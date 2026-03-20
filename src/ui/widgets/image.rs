@@ -7,6 +7,7 @@ use ratatui::Frame;
 
 /// Image rendering protocol detection.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 pub enum ImageProtocol {
     Sixel,
     Kitty,
@@ -14,31 +15,34 @@ pub enum ImageProtocol {
 }
 
 /// Detect which image protocol the terminal supports.
+#[allow(dead_code)]
 pub fn detect_image_protocol() -> ImageProtocol {
-    // Check for Kitty first (via TERM_PROGRAM or KITTY_WINDOW_ID).
+    // Kitty graphics protocol: supported by Kitty, Ghostty, and others.
     if std::env::var("KITTY_WINDOW_ID").is_ok() {
         return ImageProtocol::Kitty;
     }
 
-    // Check TERM_PROGRAM for known Sixel-capable terminals.
+    // Check TERM_PROGRAM for known terminal capabilities.
     if let Ok(term) = std::env::var("TERM_PROGRAM") {
-        match term.as_str() {
-            "WezTerm" | "foot" | "contour" | "mlterm" => return ImageProtocol::Sixel,
+        match term.to_lowercase().as_str() {
+            // Kitty protocol support.
+            "ghostty" | "kitty" => return ImageProtocol::Kitty,
+            // Sixel support.
+            "wezterm" | "foot" | "contour" | "mlterm" => return ImageProtocol::Sixel,
             _ => {}
         }
     }
 
-    // Check TERM for xterm with Sixel support.
-    if let Ok(term) = std::env::var("TERM")
-        && term.contains("xterm")
-    {
-        // Could do DA1 query but that's complex; default to none.
+    // Ghostty also sets this env var.
+    if std::env::var("GHOSTTY_RESOURCES_DIR").is_ok() {
+        return ImageProtocol::Kitty;
     }
 
     ImageProtocol::None
 }
 
 /// Parse the config image_protocol setting into an ImageProtocol.
+#[allow(dead_code)]
 pub fn parse_image_protocol(config_value: &str) -> ImageProtocol {
     match config_value {
         "sixel" => ImageProtocol::Sixel,

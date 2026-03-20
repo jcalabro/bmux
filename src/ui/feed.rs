@@ -7,6 +7,8 @@ use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
+use ratatui_image::protocol::StatefulProtocol;
+use std::collections::HashMap;
 
 /// Render a feed pane.
 pub fn render_feed_pane(
@@ -15,6 +17,7 @@ pub fn render_feed_pane(
     pane: &FeedPane,
     theme: &Theme,
     is_focused: bool,
+    image_protos: &mut HashMap<String, StatefulProtocol>,
 ) {
     if area.height < 3 || area.width < 5 {
         return;
@@ -70,14 +73,15 @@ pub fn render_feed_pane(
                 break;
             }
 
-            let height = post_card_height(post, post_area.width).min(post_area.y + post_area.height - y);
+            let height =
+                post_card_height(post, post_area.width).min(post_area.y + post_area.height - y);
             if height < 3 {
                 break;
             }
 
             let card_area = Rect::new(post_area.x, y, post_area.width, height);
             let selected = i == tab.selected;
-            render_post_card(frame, card_area, post, theme, selected);
+            render_post_card(frame, card_area, post, theme, selected, image_protos);
 
             y += height;
         }

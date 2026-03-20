@@ -25,12 +25,22 @@ pub struct App {
     pub unread_notifs: usize,
     pub should_quit: bool,
     pub config: AppConfig,
+    /// ratatui-image picker for protocol detection and image encoding.
+    pub picker: ratatui_image::picker::Picker,
+    /// Downloaded images keyed by URL, ready for rendering.
+    pub image_protos: HashMap<String, ratatui_image::protocol::StatefulProtocol>,
     next_pane_id: PaneId,
     api_tx: mpsc::Sender<ApiRequest>,
+    img_tx: mpsc::Sender<ImageRequest>,
 }
 
 impl App {
-    pub fn new(config: AppConfig, api_tx: mpsc::Sender<ApiRequest>, user_handle: String) -> Self {
+    pub fn new(
+        config: AppConfig,
+        api_tx: mpsc::Sender<ApiRequest>,
+        img_tx: mpsc::Sender<ImageRequest>,
+        user_handle: String,
+    ) -> Self {
         let themes = crate::config::theme::load_themes(&config.themes);
         let theme = themes
             .get(&config.general.theme)
@@ -87,6 +97,10 @@ impl App {
 
         let workspaces = vec![home_ws, dms_ws, notif_ws];
 
+        // Set up the ratatui-image picker for image protocol detection.
+        let picker = ratatui_image::picker::Picker::from_query_stdio()
+            .unwrap_or_else(|_| ratatui_image::picker::Picker::halfblocks());
+
         Self {
             workspaces,
             active_workspace: 0,
@@ -100,8 +114,11 @@ impl App {
             unread_notifs: 0,
             should_quit: false,
             config,
+            picker,
+            image_protos: HashMap::new(),
             next_pane_id: next_id,
             api_tx,
+            img_tx,
         }
     }
 
@@ -154,9 +171,18 @@ impl App {
                     }
                 }
             }
-            AppMessage::ImageReady { url, data: _ } => {
-                // TODO: store decoded image data for rendering.
-                tracing::debug!("Image ready: {}", url);
+            AppMessage::ImageReady { url, data } => {
+                match data {
+                    ImageData::RawBytes(bytes) => {
+                        if let Ok(dyn_img) = image::load_from_memory(&bytes) {
+                            let proto = self.picker.new_resize_protocol(dyn_img);
+                            self.image_protos.insert(url, proto);
+                        }
+                    }
+                    ImageData::AltText(_) => {
+                        // Nothing to render, alt text is shown by default.
+                    }
+                }
             }
             AppMessage::Toast(toast) => {
                 self.toast_manager.push(toast);
@@ -272,6 +298,7 @@ impl App {
     fn handle_api_response(&mut self, response: ApiResponse) {
         match response {
             ApiResponse::Timeline { posts, cursor } => {
+                self.request_images_for_posts(&posts);
                 // Find the feed pane and update its active tab.
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Feed(ref mut fp) = pane.kind
@@ -906,6 +933,33 @@ impl App {
         let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
     }
 
+    /// Request image downloads for any image embeds in posts.
+    fn request_images_for_posts(&self, posts: &[Post]) {
+        for post in posts {
+            if let Some(PostEmbed::Images(images)) = &post.embed {
+                for img in images {
+                    if !self.image_protos.contains_key(&img.thumb_url) {
+                        let _ = self.img_tx.try_send(ImageRequest {
+                            url: img.thumb_url.clone(),
+                            max_width: 40,
+                            max_height: 10,
+                        });
+                    }
+                }
+            } else if let Some(PostEmbed::RecordWithMedia { images, .. }) = &post.embed {
+                for img in images {
+                    if !self.image_protos.contains_key(&img.thumb_url) {
+                        let _ = self.img_tx.try_send(ImageRequest {
+                            url: img.thumb_url.clone(),
+                            max_width: 40,
+                            max_height: 10,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     fn request_feed_data(&self) {
         // Check which feed tab is active and request its data.
         let id = self.focused_pane_id();
@@ -938,7 +992,7 @@ impl App {
     }
 
     /// Render the entire UI.
-    pub fn render(&self, frame: &mut Frame) {
+    pub fn render(&mut self, frame: &mut Frame) {
         crate::ui::render(
             frame,
             &self.workspaces,
@@ -951,6 +1005,7 @@ impl App {
             self.show_help,
             &self.user_handle,
             self.unread_notifs,
+            &mut self.image_protos,
         );
     }
 }
@@ -962,7 +1017,8 @@ mod tests {
     fn test_app() -> App {
         let config = AppConfig::default();
         let (tx, _rx) = mpsc::channel(100);
-        App::new(config, tx, "test.bsky.social".to_string())
+        let (img_tx, _img_rx) = mpsc::channel(100);
+        App::new(config, tx, img_tx, "test.bsky.social".to_string())
     }
 
     #[test]

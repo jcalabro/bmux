@@ -3,16 +3,14 @@ pub mod kitty;
 pub mod sixel;
 
 use crate::messages::{AppMessage, ImageData, ImageRequest};
-use crate::ui::widgets::image::ImageProtocol;
 use cache::{ImageCache, ImageCacheKey};
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
-/// Image task: decodes images and sends them back to the app.
+/// Image task: downloads images and sends decoded DynamicImage data back.
 pub async fn run_image_task(
     mut rx: mpsc::Receiver<ImageRequest>,
     tx: mpsc::Sender<AppMessage>,
-    protocol: ImageProtocol,
     cache: Arc<Mutex<ImageCache>>,
 ) {
     let client = reqwest::Client::new();
@@ -44,7 +42,7 @@ pub async fn run_image_task(
         let cache = cache.clone();
 
         tokio::spawn(async move {
-            let data = fetch_and_encode(&client, &request, protocol).await;
+            let data = fetch_image(&client, &request).await;
 
             // Cache the result.
             {
@@ -62,12 +60,7 @@ pub async fn run_image_task(
     }
 }
 
-async fn fetch_and_encode(
-    client: &reqwest::Client,
-    request: &ImageRequest,
-    protocol: ImageProtocol,
-) -> ImageData {
-    // Download the image.
+async fn fetch_image(client: &reqwest::Client, request: &ImageRequest) -> ImageData {
     let bytes = match client.get(&request.url).send().await {
         Ok(resp) => match resp.bytes().await {
             Ok(b) => b,
@@ -82,26 +75,7 @@ async fn fetch_and_encode(
         }
     };
 
-    // Decode the image.
-    let img = match image::load_from_memory(&bytes) {
-        Ok(img) => img,
-        Err(e) => {
-            tracing::warn!("Failed to decode image {}: {}", request.url, e);
-            return ImageData::AltText("[image: decode failed]".to_string());
-        }
-    };
-
-    // Encode for the target protocol.
-    match protocol {
-        ImageProtocol::Sixel => {
-            ImageData::Sixel(sixel::encode_sixel(&img, request.max_width, request.max_height))
-        }
-        ImageProtocol::Kitty => {
-            ImageData::Kitty(kitty::encode_kitty(&img, request.max_width, request.max_height))
-        }
-        ImageProtocol::None => {
-            let (w, h) = (img.width(), img.height());
-            ImageData::AltText(format!("[image: {}x{}]", w, h))
-        }
-    }
+    // Return the raw bytes -- the rendering thread will use ratatui-image's
+    // Picker to create a protocol-specific encoding at render time.
+    ImageData::RawBytes(bytes.to_vec())
 }

@@ -17,6 +17,7 @@ use crate::ui::toast::ToastManager;
 use crate::ui::workspace::{PaneId, Workspace};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::Frame;
+use ratatui_image::protocol::StatefulProtocol;
 use std::collections::HashMap;
 
 /// Render the entire application UI.
@@ -33,6 +34,7 @@ pub fn render(
     show_help: bool,
     user_handle: &str,
     unread_notifs: usize,
+    image_protos: &mut HashMap<String, StatefulProtocol>,
 ) {
     let area = frame.area();
     if area.height < 3 || area.width < 10 {
@@ -66,7 +68,7 @@ pub fn render(
         for (pane_id, pane_area) in &pane_layouts {
             if let Some(pane) = panes.get(pane_id) {
                 let is_focused = *pane_id == ws.focused_pane;
-                render_pane(frame, *pane_area, pane, theme, is_focused);
+                render_pane(frame, *pane_area, pane, theme, is_focused, image_protos);
             }
         }
     }
@@ -110,10 +112,11 @@ fn render_pane(
     pane: &Pane,
     theme: &Theme,
     is_focused: bool,
+    image_protos: &mut HashMap<String, StatefulProtocol>,
 ) {
     match &pane.kind {
         PaneKind::Feed(feed_pane) => {
-            feed::render_feed_pane(frame, area, feed_pane, theme, is_focused);
+            feed::render_feed_pane(frame, area, feed_pane, theme, is_focused, image_protos);
         }
         PaneKind::Thread(thread_pane) => {
             thread::render_thread_pane(frame, area, thread_pane, theme, is_focused);

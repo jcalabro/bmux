@@ -427,8 +427,9 @@ pub struct DirectMessage {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum ImageData {
-    Sixel(String),
-    Kitty(String),
+    /// Raw image bytes (JPEG, PNG, etc.) -- will be decoded at render time.
+    RawBytes(Vec<u8>),
+    /// Fallback text when image can't be loaded.
     AltText(String),
 }
 

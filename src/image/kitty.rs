@@ -1,6 +1,7 @@
 use base64::Engine;
 
 /// Encode an image for the Kitty graphics protocol.
+#[allow(dead_code)]
 pub fn encode_kitty(img: &image::DynamicImage, max_width: u16, max_height: u16) -> String {
     let resized = img.resize(
         max_width as u32 * 8,

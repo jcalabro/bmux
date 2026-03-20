@@ -1,5 +1,6 @@
 /// Encode an image as Sixel graphics.
 /// This is a simplified encoder; a production version would use a proper library.
+#[allow(dead_code)]
 pub fn encode_sixel(img: &image::DynamicImage, max_width: u16, max_height: u16) -> String {
     let resized = img.resize(
         max_width as u32 * 8, // rough char-to-pixel

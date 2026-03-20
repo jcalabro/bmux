@@ -28,6 +28,7 @@ toml = "0.8"
 
 # Image handling
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+ratatui-image = "10"
 
 # CLI
 clap = { version = "4", features = ["derive"] }
