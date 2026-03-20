@@ -1,7 +1,6 @@
 # alf — the tmux of Bluesky
 
-default:
-    @just --list
+default: lint test
 
 # Build in debug mode
 build:
