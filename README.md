@@ -1,2 +1,2 @@
-# power-poaster
-Power Poaster is the tmux of Bluesky
+# alf
+alf is the tmux of Bluesky
