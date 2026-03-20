@@ -29,6 +29,8 @@ pub struct App {
     pub picker: ratatui_image::picker::Picker,
     /// Downloaded images keyed by URL, ready for rendering.
     pub image_protos: HashMap<String, ratatui_image::protocol::StatefulProtocol>,
+    /// Pane that was focused before compose opened, to restore on close.
+    pre_compose_pane: Option<PaneId>,
     next_pane_id: PaneId,
     api_tx: mpsc::Sender<ApiRequest>,
     img_tx: mpsc::Sender<ImageRequest>,
@@ -116,6 +118,7 @@ impl App {
             config,
             picker,
             image_protos: HashMap::new(),
+            pre_compose_pane: None,
             next_pane_id: next_id,
             api_tx,
             img_tx,
@@ -754,6 +757,9 @@ impl App {
         let pane = Pane::new_compose(id, reply_to, quote);
         self.panes.insert(id, pane);
 
+        // Remember which pane was focused before compose so we can restore it.
+        self.pre_compose_pane = Some(self.focused_pane_id());
+
         let focused_id = self.focused_pane_id();
         self.active_ws_mut()
             .pane_tree
@@ -791,7 +797,15 @@ impl App {
         if let Some(pane) = self.panes.get(&id)
             && matches!(pane.kind, PaneKind::Compose(_))
         {
+            // Restore focus to the pane that was focused before compose opened.
+            let restore_to = self.pre_compose_pane.take();
             self.close_focused_pane();
+            if let Some(restore_id) = restore_to {
+                // Verify the pane still exists in the tree.
+                if self.active_ws().pane_tree.leaf_ids().contains(&restore_id) {
+                    self.active_ws_mut().focused_pane = restore_id;
+                }
+            }
         }
         self.vim.enter_normal();
     }
