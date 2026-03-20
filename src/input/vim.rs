@@ -144,7 +144,7 @@ impl VimState {
         if key.modifiers.contains(KeyModifiers::CONTROL) {
             return match key.code {
                 KeyCode::Char('a') => Some(UiAction::AttachImage),
-                KeyCode::Char('e') => Some(UiAction::SwitchToEditor),
+                KeyCode::Char('e') | KeyCode::Char('g') => Some(UiAction::SwitchToEditor),
                 _ => None,
             };
         }

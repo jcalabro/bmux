@@ -9,6 +9,8 @@ use crate::ui::toast::ToastManager;
 use crate::ui::workspace::{PaneId, PaneTree, SplitDirection, Workspace};
 use ratatui::Frame;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 /// The central application state and actor.
@@ -34,6 +36,10 @@ pub struct App {
     next_pane_id: PaneId,
     api_tx: mpsc::Sender<ApiRequest>,
     img_tx: mpsc::Sender<ImageRequest>,
+    /// Shared flag to pause the input reader thread during editor handoff.
+    pub input_paused: Arc<AtomicBool>,
+    /// Set after returning from $EDITOR so the main loop can force a full redraw.
+    pub needs_full_redraw: bool,
 }
 
 impl App {
@@ -119,6 +125,8 @@ impl App {
             next_pane_id: next_id,
             api_tx,
             img_tx,
+            input_paused: Arc::new(AtomicBool::new(false)),
+            needs_full_redraw: false,
         }
     }
 
@@ -837,24 +845,85 @@ impl App {
             .or_else(|| std::env::var("EDITOR").ok())
             .unwrap_or_else(|| "vi".to_string());
 
-        // Create a temp file, open the editor, read the result.
         let tmpdir = std::env::temp_dir();
         let tmpfile = tmpdir.join("bmux_compose.txt");
 
-        // If we're in a compose pane, write the current draft.
+        // Write current draft to temp file.
         if let Some(pane) = self.focused_pane()
             && let PaneKind::Compose(cp) = &pane.kind
         {
             let _ = std::fs::write(&tmpfile, &cp.text);
+        } else {
+            let _ = std::fs::write(&tmpfile, "");
         }
 
-        // Note: This blocks the event loop. In a real implementation,
-        // we'd suspend the TUI, run the editor, and restore.
-        // For now, this is a placeholder showing the intent.
-        self.toast_manager.push(Toast::info(format!(
-            "$EDITOR compose: would open {}",
-            editor
-        )));
+        // Pause the input reader thread so it stops consuming stdin.
+        self.input_paused.store(true, Ordering::SeqCst);
+
+        // Suspend TUI so the editor gets a normal terminal.
+        let _ = crossterm::execute!(
+            std::io::stdout(),
+            crossterm::terminal::LeaveAlternateScreen
+        );
+        let _ = crossterm::terminal::disable_raw_mode();
+
+        // Run the editor (blocks until it exits).
+        let status = std::process::Command::new(&editor)
+            .arg(&tmpfile)
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status();
+
+        // Restore TUI.
+        let _ = crossterm::terminal::enable_raw_mode();
+        let _ = crossterm::execute!(
+            std::io::stdout(),
+            crossterm::terminal::EnterAlternateScreen,
+            crossterm::terminal::Clear(crossterm::terminal::ClearType::All)
+        );
+
+        // Drain any leftover input events (editor cleanup sequences,
+        // trailing keystrokes from :wq, etc.) before resuming.
+        while crossterm::event::poll(std::time::Duration::from_millis(50)).unwrap_or(false) {
+            let _ = crossterm::event::read();
+        }
+
+        // Resume the input reader thread.
+        self.input_paused.store(false, Ordering::SeqCst);
+        self.needs_full_redraw = true;
+
+        match status {
+            Ok(s) if s.success() => {
+                // Read back the edited text.
+                if let Ok(text) = std::fs::read_to_string(&tmpfile) {
+                    let text = text.trim_end().to_string();
+                    if text.is_empty() {
+                        self.toast_manager
+                            .push(Toast::info("Editor returned empty text, cancelled"));
+                    } else {
+                        // Set the compose pane text.
+                        let id = self.focused_pane_id();
+                        if let Some(pane) = self.panes.get_mut(&id)
+                            && let PaneKind::Compose(cp) = &mut pane.kind
+                        {
+                            cp.cursor_pos = text.len();
+                            cp.text = text;
+                        }
+                    }
+                }
+            }
+            Ok(_) => {
+                self.toast_manager
+                    .push(Toast::error("Editor exited with error"));
+            }
+            Err(e) => {
+                self.toast_manager
+                    .push(Toast::error(format!("Failed to run {}: {}", editor, e)));
+            }
+        }
+
+        let _ = std::fs::remove_file(&tmpfile);
     }
 
     fn insert_char(&mut self, c: char) {

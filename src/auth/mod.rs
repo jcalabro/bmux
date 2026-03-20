@@ -152,79 +152,96 @@ async fn oauth_xrpc_get(
     method: &str,
     params: &[(&str, &str)],
 ) -> Result<Value> {
-    let (base_url, token, mut dpop) = read_session_data(session).await;
+    // Try the request, and if we get a 401, refresh the token and retry once.
+    for attempt in 0..2 {
+        let (base_url, token, mut dpop) = read_session_data(session).await;
 
-    // Build URL with query params.
-    let mut parsed_url = reqwest::Url::parse(&format!("{}/xrpc/{}", base_url, method))
-        .map_err(|e| anyhow::anyhow!("Invalid XRPC URL: {}", e))?;
-    for (k, v) in params {
-        parsed_url.query_pairs_mut().append_pair(k, v);
+        let mut parsed_url = reqwest::Url::parse(&format!("{}/xrpc/{}", base_url, method))
+            .map_err(|e| anyhow::anyhow!("Invalid XRPC URL: {}", e))?;
+        for (k, v) in params {
+            parsed_url.query_pairs_mut().append_pair(k, v);
+        }
+        let url = parsed_url.to_string();
+
+        let mut builder = http::Request::builder()
+            .method(http::Method::GET)
+            .uri(&url)
+            .header("Authorization", format!("DPoP {}", token));
+        if method.starts_with("chat.bsky.") {
+            builder = builder.header("Atproto-Proxy", CHAT_PROXY);
+        }
+        let request = builder.body(vec![])?;
+
+        let response = session
+            .client
+            .dpop_call(&mut dpop)
+            .send(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("OAuth XRPC GET {} failed: {:?}", method, e))?;
+
+        write_back_nonce(session, &dpop).await;
+
+        let status = response.status();
+        let body_bytes = response.into_body();
+
+        if status == http::StatusCode::UNAUTHORIZED && attempt == 0 {
+            // Token expired — refresh and retry.
+            let _ = session.refresh().await;
+            continue;
+        }
+
+        if !status.is_success() {
+            let body_text = String::from_utf8_lossy(&body_bytes);
+            anyhow::bail!("XRPC {} failed ({}): {}", method, status, body_text);
+        }
+
+        return Ok(serde_json::from_slice(&body_bytes)?);
     }
-    let url = parsed_url.to_string();
-
-    let mut builder = http::Request::builder()
-        .method(http::Method::GET)
-        .uri(&url)
-        .header("Authorization", format!("DPoP {}", token));
-    if method.starts_with("chat.bsky.") {
-        builder = builder.header("Atproto-Proxy", CHAT_PROXY);
-    }
-    let request = builder.body(vec![])?;
-
-    let response = session
-        .client
-        .dpop_call(&mut dpop)
-        .send(request)
-        .await
-        .map_err(|e| anyhow::anyhow!("OAuth XRPC GET {} failed: {:?}", method, e))?;
-
-    write_back_nonce(session, &dpop).await;
-
-    let status = response.status();
-    let body_bytes = response.into_body();
-
-    if !status.is_success() {
-        let body_text = String::from_utf8_lossy(&body_bytes);
-        anyhow::bail!("XRPC {} failed ({}): {}", method, status, body_text);
-    }
-
-    Ok(serde_json::from_slice(&body_bytes)?)
+    anyhow::bail!("XRPC {} failed after token refresh", method)
 }
 
 async fn oauth_xrpc_post(session: &OAuthSessionType, method: &str, body: &Value) -> Result<Value> {
-    let (base_url, token, mut dpop) = read_session_data(session).await;
+    for attempt in 0..2 {
+        let (base_url, token, mut dpop) = read_session_data(session).await;
 
-    let url = format!("{}/xrpc/{}", base_url, method);
-    let body_bytes = serde_json::to_vec(body)?;
+        let url = format!("{}/xrpc/{}", base_url, method);
+        let body_bytes = serde_json::to_vec(body)?;
 
-    let mut builder = http::Request::builder()
-        .method(http::Method::POST)
-        .uri(&url)
-        .header("Authorization", format!("DPoP {}", token))
-        .header("Content-Type", "application/json");
-    if method.starts_with("chat.bsky.") {
-        builder = builder.header("Atproto-Proxy", CHAT_PROXY);
+        let mut builder = http::Request::builder()
+            .method(http::Method::POST)
+            .uri(&url)
+            .header("Authorization", format!("DPoP {}", token))
+            .header("Content-Type", "application/json");
+        if method.starts_with("chat.bsky.") {
+            builder = builder.header("Atproto-Proxy", CHAT_PROXY);
+        }
+        let request = builder.body(body_bytes)?;
+
+        let response = session
+            .client
+            .dpop_call(&mut dpop)
+            .send(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("OAuth XRPC POST {} failed: {:?}", method, e))?;
+
+        write_back_nonce(session, &dpop).await;
+
+        let status = response.status();
+        let resp_bytes = response.into_body();
+
+        if status == http::StatusCode::UNAUTHORIZED && attempt == 0 {
+            let _ = session.refresh().await;
+            continue;
+        }
+
+        if !status.is_success() {
+            let body_text = String::from_utf8_lossy(&resp_bytes);
+            anyhow::bail!("XRPC {} failed ({}): {}", method, status, body_text);
+        }
+
+        return Ok(serde_json::from_slice(&resp_bytes)?);
     }
-    let request = builder.body(body_bytes)?;
-
-    let response = session
-        .client
-        .dpop_call(&mut dpop)
-        .send(request)
-        .await
-        .map_err(|e| anyhow::anyhow!("OAuth XRPC POST {} failed: {:?}", method, e))?;
-
-    write_back_nonce(session, &dpop).await;
-
-    let status = response.status();
-    let resp_bytes = response.into_body();
-
-    if !status.is_success() {
-        let body_text = String::from_utf8_lossy(&resp_bytes);
-        anyhow::bail!("XRPC {} failed ({}): {}", method, status, body_text);
-    }
-
-    Ok(serde_json::from_slice(&resp_bytes)?)
+    anyhow::bail!("XRPC {} failed after token refresh", method)
 }
 
 /// Read the session data needed for making a DPoP-authenticated request.

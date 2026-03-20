@@ -194,22 +194,31 @@ async fn main() -> Result<()> {
     // and send key events over a channel.
 
     let (key_tx, mut key_rx) = mpsc::channel::<KeyEvent>(64);
+    let input_paused = app.input_paused.clone();
     std::thread::spawn(move || {
         loop {
-            match event::read() {
-                Ok(Event::Key(key_event)) => {
-                    if key_event.kind != KeyEventKind::Press {
-                        continue;
+            // When paused (editor is open), sleep instead of reading stdin.
+            if input_paused.load(std::sync::atomic::Ordering::SeqCst) {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+                continue;
+            }
+
+            // Use poll + read so we can check the pause flag periodically.
+            match event::poll(std::time::Duration::from_millis(10)) {
+                Ok(true) => match event::read() {
+                    Ok(Event::Key(key_event)) => {
+                        if key_event.kind != KeyEventKind::Press {
+                            continue;
+                        }
+                        if key_tx.blocking_send(key_event).is_err() {
+                            break;
+                        }
                     }
-                    if key_tx.blocking_send(key_event).is_err() {
-                        break;
-                    }
-                }
-                Ok(Event::Resize(_w, _h)) => {
-                    // We could send resize events too, but the terminal
-                    // handles this automatically on the next draw.
-                }
-                Ok(_) => {}
+                    Ok(Event::Resize(_w, _h)) => {}
+                    Ok(_) => {}
+                    Err(_) => break,
+                },
+                Ok(false) => {} // timeout, loop back to check pause flag
                 Err(_) => break,
             }
         }
@@ -218,6 +227,10 @@ async fn main() -> Result<()> {
     // ── Main event loop ─────────────────────────────────────
 
     loop {
+        if app.needs_full_redraw {
+            app.needs_full_redraw = false;
+            terminal.clear()?;
+        }
         terminal.draw(|frame| app.render(frame))?;
 
         tokio::select! {

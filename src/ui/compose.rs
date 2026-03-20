@@ -57,7 +57,12 @@ pub fn render_compose_pane(
             Style::default().fg(theme.muted),
         )))
     } else {
-        Text::from(Span::styled(&pane.text, text_style))
+        let lines: Vec<Line> = pane
+            .text
+            .split('\n')
+            .map(|line| Line::from(Span::styled(line.to_string(), text_style)))
+            .collect();
+        Text::from(lines)
     };
 
     let paragraph = Paragraph::new(text).wrap(Wrap { trim: false });

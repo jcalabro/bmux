@@ -10,6 +10,11 @@ build:
 release:
     cargo build --release
 
+# Builds and installs the binary to the given path
+install PATH="/usr/local/bin":
+    just release
+    sudo cp ./target/release/bmux {{PATH}}
+
 # Run with debug output
 run *ARGS:
     cargo run -- {{ARGS}}
