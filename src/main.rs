@@ -143,9 +143,15 @@ async fn main() -> Result<()> {
         crate::image::run_image_task(img_rx, img_app_tx, image_cache).await;
     });
 
+    // ── Detect image protocol ────────────────────────────────
+    // Must happen before entering raw mode / alternate screen.
+
+    let picker = ratatui_image::picker::Picker::from_query_stdio()
+        .unwrap_or_else(|_| ratatui_image::picker::Picker::halfblocks());
+
     // ── Create the App ──────────────────────────────────────
 
-    let mut app = App::new(app_config, api_tx, img_tx, user_handle);
+    let mut app = App::new(app_config, api_tx, img_tx, user_handle, picker);
     app.request_initial_data();
 
     // ── Set up terminal ─────────────────────────────────────

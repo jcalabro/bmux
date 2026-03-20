@@ -42,6 +42,7 @@ impl App {
         api_tx: mpsc::Sender<ApiRequest>,
         img_tx: mpsc::Sender<ImageRequest>,
         user_handle: String,
+        picker: ratatui_image::picker::Picker,
     ) -> Self {
         let themes = crate::config::theme::load_themes(&config.themes);
         let theme = themes
@@ -98,10 +99,6 @@ impl App {
         let notif_ws = Workspace::new("Notifs", notif_tree, notif_id);
 
         let workspaces = vec![home_ws, dms_ws, notif_ws];
-
-        // Set up the ratatui-image picker for image protocol detection.
-        let picker = ratatui_image::picker::Picker::from_query_stdio()
-            .unwrap_or_else(|_| ratatui_image::picker::Picker::halfblocks());
 
         Self {
             workspaces,
@@ -1049,7 +1046,8 @@ mod tests {
         let config = AppConfig::default();
         let (tx, _rx) = mpsc::channel(100);
         let (img_tx, _img_rx) = mpsc::channel(100);
-        App::new(config, tx, img_tx, "test.bsky.social".to_string())
+        let picker = ratatui_image::picker::Picker::halfblocks();
+        App::new(config, tx, img_tx, "test.bsky.social".to_string(), picker)
     }
 
     #[test]
