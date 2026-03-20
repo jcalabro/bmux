@@ -1,0 +1,49 @@
+[package]
+name = "alf"
+version = "0.1.0"
+edition = "2024"
+description = "The tmux of Bluesky — a maximalist terminal Bluesky client"
+license = "MIT"
+
+[[bin]]
+name = "alf"
+path = "src/main.rs"
+
+[dependencies]
+# TUI
+ratatui = { version = "0.30", features = ["crossterm"] }
+crossterm = { version = "0.29", features = ["event-stream"] }
+tui-textarea = { version = "0.7", features = ["crossterm"] }
+
+# Bluesky / AT Protocol
+jacquard = "0.9"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# Serialization / Config
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# Image handling
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Utilities
+dirs = "6"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+lru = "0.16"
+chrono = { version = "0.4", features = ["serde"] }
+unicode-segmentation = "1"
+open = "5"
+reqwest = { version = "0.12", features = ["json"] }
+anyhow = "1"
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
+pretty_assertions = "1"
