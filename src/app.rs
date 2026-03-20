@@ -306,10 +306,6 @@ impl App {
             }
             ApiResponse::PostCreated { uri: _ } => {
                 self.toast_manager.push(Toast::success("Post created!"));
-                self.vim.enter_normal();
-                // Remove compose pane if there is one.
-                self.cancel_compose();
-                // Refresh timeline.
                 self.request_timeline_refresh();
             }
             ApiResponse::PostLiked { post_uri, like_uri } => {
@@ -733,13 +729,16 @@ impl App {
                 return;
             }
             if cp.grapheme_count() > 300 {
-                self.toast_manager.push(Toast::error("Post exceeds 300 character limit"));
+                self.toast_manager
+                    .push(Toast::error("Post exceeds 300 character limit"));
                 return;
             }
             let _ = self.api_tx.try_send(ApiRequest::CreatePost {
                 text: cp.text.clone(),
                 reply_to: cp.reply_to.clone(),
             });
+            // Close the compose pane and return to normal mode immediately.
+            self.cancel_compose();
         }
     }
 
