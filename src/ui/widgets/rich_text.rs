@@ -1,5 +1,5 @@
 use crate::config::theme::Theme;
-use crate::messages::{parse_rich_text, Facet, RichTextKind};
+use crate::messages::{Facet, RichTextKind, parse_rich_text};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 

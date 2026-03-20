@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::ThreadPane;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 /// Render a thread pane.
 pub fn render_thread_pane(
@@ -98,7 +98,10 @@ pub fn render_thread_pane(
         lines.push(Line::from(vec![
             Span::styled(text_indent, Style::default().fg(theme.border)),
             Span::styled(
-                format!("♥ {}  ↻ {}  💬 {}", entry.post.like_count, entry.post.repost_count, entry.post.reply_count),
+                format!(
+                    "♥ {}  ↻ {}  💬 {}",
+                    entry.post.like_count, entry.post.repost_count, entry.post.reply_count
+                ),
                 Style::default().fg(theme.muted),
             ),
         ]));

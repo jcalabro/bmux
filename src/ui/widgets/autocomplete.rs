@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::messages::Author;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem};
-use ratatui::Frame;
 
 /// Autocomplete popup state.
 #[derive(Debug, Clone)]
@@ -93,10 +93,7 @@ pub fn render_autocomplete(
             let display = format!(
                 "@{} {}",
                 author.handle,
-                author
-                    .display_name
-                    .as_deref()
-                    .unwrap_or("")
+                author.display_name.as_deref().unwrap_or("")
             );
             let style = if i == state.selected {
                 Style::default()

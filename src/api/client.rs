@@ -1,48 +1,18 @@
 use crate::auth::AppAgent;
 use crate::messages::*;
-use anyhow::{bail, Result};
+use anyhow::Result;
 use serde_json::Value;
 
 /// Make an authenticated GET request to the Bluesky XRPC API.
+/// Dispatches to OAuth DPoP or app-password Bearer auth based on the agent type.
 async fn xrpc_get(agent: &AppAgent, method: &str, params: &[(&str, &str)]) -> Result<Value> {
-    let client = reqwest::Client::new();
-    let url = format!("{}/xrpc/{}", agent.service, method);
-
-    let resp = client
-        .get(&url)
-        .bearer_auth(&agent.access_jwt)
-        .query(params)
-        .send()
-        .await?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        bail!("XRPC {} failed ({}): {}", method, status, body);
-    }
-
-    Ok(resp.json().await?)
+    agent.xrpc_get(method, params).await
 }
 
 /// Make an authenticated POST request.
+/// Dispatches to OAuth DPoP or app-password Bearer auth based on the agent type.
 async fn xrpc_post(agent: &AppAgent, method: &str, body: &Value) -> Result<Value> {
-    let client = reqwest::Client::new();
-    let url = format!("{}/xrpc/{}", agent.service, method);
-
-    let resp = client
-        .post(&url)
-        .bearer_auth(&agent.access_jwt)
-        .json(body)
-        .send()
-        .await?;
-
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        bail!("XRPC {} failed ({}): {}", method, status, body);
-    }
-
-    Ok(resp.json().await?)
+    agent.xrpc_post(method, body).await
 }
 
 /// Fetch the home timeline.
@@ -82,21 +52,21 @@ pub async fn fetch_thread(agent: &AppAgent, uri: &str) -> Result<PostThread> {
 
 /// Like a post.
 pub async fn like_post(agent: &AppAgent, uri: &str, cid: &str) -> Result<String> {
-    let body = build_like_record(&agent.did, uri, cid);
+    let body = build_like_record(agent.did(), uri, cid);
     let resp = xrpc_post(agent, "com.atproto.repo.createRecord", &body).await?;
     Ok(resp["uri"].as_str().unwrap_or("").to_string())
 }
 
 /// Unlike a post.
 pub async fn unlike_post(agent: &AppAgent, like_uri: &str) -> Result<()> {
-    let body = build_delete_record(&agent.did, "app.bsky.feed.like", like_uri)?;
+    let body = build_delete_record(agent.did(), "app.bsky.feed.like", like_uri)?;
     xrpc_post(agent, "com.atproto.repo.deleteRecord", &body).await?;
     Ok(())
 }
 
 /// Repost a post.
 pub async fn repost_post(agent: &AppAgent, uri: &str, cid: &str) -> Result<String> {
-    let body = build_repost_record(&agent.did, uri, cid);
+    let body = build_repost_record(agent.did(), uri, cid);
     let resp = xrpc_post(agent, "com.atproto.repo.createRecord", &body).await?;
     Ok(resp["uri"].as_str().unwrap_or("").to_string())
 }
@@ -108,7 +78,7 @@ pub async fn create_post(
     reply_to: Option<&ReplyRef>,
     quote: Option<&QuoteRef>,
 ) -> Result<String> {
-    let body = build_post_record(&agent.did, text, reply_to, quote);
+    let body = build_post_record(agent.did(), text, reply_to, quote);
     let resp = xrpc_post(agent, "com.atproto.repo.createRecord", &body).await?;
     Ok(resp["uri"].as_str().unwrap_or("").to_string())
 }
@@ -169,7 +139,7 @@ pub async fn send_message(agent: &AppAgent, convo_id: &str, text: &str) -> Resul
 
 /// Follow a user.
 pub async fn follow_user(agent: &AppAgent, did: &str) -> Result<String> {
-    let body = build_follow_record(&agent.did, did);
+    let body = build_follow_record(agent.did(), did);
     let resp = xrpc_post(agent, "com.atproto.repo.createRecord", &body).await?;
     Ok(resp["uri"].as_str().unwrap_or("").to_string())
 }
@@ -279,10 +249,7 @@ fn parse_feed_view_post(v: &Value) -> Option<Post> {
     if v["reply"].is_object() {
         let parent = &v["reply"]["parent"];
         if parent.is_object() && parent["author"].is_object() {
-            let parent_text = parent["record"]["text"]
-                .as_str()
-                .unwrap_or("")
-                .to_string();
+            let parent_text = parent["record"]["text"].as_str().unwrap_or("").to_string();
             let root = &v["reply"]["root"];
             let root_author = if root.is_object()
                 && root["author"].is_object()
@@ -399,10 +366,7 @@ fn parse_quoted_post(v: &Value) -> Option<QuotedPost> {
         return None;
     };
 
-    let text = v["value"]["text"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let text = v["value"]["text"].as_str().unwrap_or("").to_string();
 
     Some(QuotedPost {
         uri: v["uri"].as_str().unwrap_or("").to_string(),
@@ -561,7 +525,9 @@ fn build_follow_record(repo: &str, subject_did: &str) -> Value {
 /// Build a deleteRecord body (for unlike, unrepost, unfollow, etc.).
 fn build_delete_record(repo: &str, collection: &str, record_uri: &str) -> Result<Value> {
     let parts: Vec<&str> = record_uri.split('/').collect();
-    let rkey = parts.last().ok_or_else(|| anyhow::anyhow!("Invalid record URI: {}", record_uri))?;
+    let rkey = parts
+        .last()
+        .ok_or_else(|| anyhow::anyhow!("Invalid record URI: {}", record_uri))?;
     Ok(serde_json::json!({
         "repo": repo,
         "collection": collection,
@@ -779,12 +745,7 @@ mod tests {
 
     #[test]
     fn test_delete_record_extracts_rkey() {
-        let body = build_delete_record(
-            TEST_DID,
-            "app.bsky.feed.like",
-            TEST_LIKE_URI,
-        )
-        .unwrap();
+        let body = build_delete_record(TEST_DID, "app.bsky.feed.like", TEST_LIKE_URI).unwrap();
         assert_eq!(body["repo"], TEST_DID);
         assert_eq!(body["collection"], "app.bsky.feed.like");
         assert_eq!(body["rkey"], "xyz789");
@@ -1024,7 +985,12 @@ mod tests {
         });
 
         let embed = parse_embed(&json).unwrap();
-        if let PostEmbed::External { uri, title, description } = embed {
+        if let PostEmbed::External {
+            uri,
+            title,
+            description,
+        } = embed
+        {
             assert_eq!(uri, "https://example.com");
             assert_eq!(title, "Example");
             assert_eq!(description, "An example website");

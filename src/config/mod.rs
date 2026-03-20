@@ -272,4 +272,47 @@ fg = "#ffffff"
         let dir = config_dir();
         assert!(dir.ends_with("bmux"));
     }
+
+    #[test]
+    fn test_default_auth_config() {
+        let config = AppConfig::default();
+        assert_eq!(config.auth.method, "app-password");
+        assert_eq!(config.auth.redirect_port, 8420);
+        assert!(config.auth.service.is_none());
+        assert!(config.auth.identifier.is_none());
+        assert!(config.auth.token_file.is_none());
+    }
+
+    #[test]
+    fn test_parse_oauth_auth_config() {
+        let toml = r#"
+[auth]
+method = "oauth"
+service = "https://bsky.social"
+identifier = "alice.bsky.social"
+redirect_port = 9000
+token_file = "/custom/path/tokens.json"
+"#;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        assert_eq!(config.auth.method, "oauth");
+        assert_eq!(config.auth.redirect_port, 9000);
+        assert_eq!(
+            config.auth.token_file.as_deref(),
+            Some("/custom/path/tokens.json")
+        );
+        assert_eq!(config.auth.identifier.as_deref(), Some("alice.bsky.social"));
+    }
+
+    #[test]
+    fn test_parse_auth_config_defaults_preserved() {
+        let toml = r#"
+[auth]
+identifier = "bob.bsky.social"
+"#;
+        let config: AppConfig = toml::from_str(toml).unwrap();
+        // Unspecified fields should have defaults.
+        assert_eq!(config.auth.method, "app-password");
+        assert_eq!(config.auth.redirect_port, 8420);
+        assert!(config.auth.token_file.is_none());
+    }
 }

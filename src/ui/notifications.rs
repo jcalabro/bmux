@@ -1,11 +1,11 @@
 use crate::config::theme::Theme;
 use crate::messages::NotificationReason;
 use crate::ui::pane::NotificationsPane;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 /// Render the notifications pane.
 pub fn render_notifications_pane(
@@ -76,28 +76,17 @@ pub fn render_notifications_pane(
         let unread_marker = if !notif.is_read { "● " } else { "  " };
 
         lines.push(Line::from(vec![
-            Span::styled(
-                unread_marker,
-                Style::default().fg(theme.accent),
-            ),
-            Span::styled(
-                format!("{} ", icon),
-                Style::default().fg(color),
-            ),
+            Span::styled(unread_marker, Style::default().fg(theme.accent)),
+            Span::styled(format!("{} ", icon), Style::default().fg(color)),
             Span::styled(
                 display_name,
-                Style::default()
-                    .fg(theme.fg)
-                    .add_modifier(if is_selected {
-                        Modifier::BOLD
-                    } else {
-                        Modifier::empty()
-                    }),
+                Style::default().fg(theme.fg).add_modifier(if is_selected {
+                    Modifier::BOLD
+                } else {
+                    Modifier::empty()
+                }),
             ),
-            Span::styled(
-                format!(" {}", action),
-                Style::default().fg(theme.muted),
-            ),
+            Span::styled(format!(" {}", action), Style::default().fg(theme.muted)),
         ]));
     }
 

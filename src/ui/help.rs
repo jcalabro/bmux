@@ -1,9 +1,9 @@
 use crate::config::theme::Theme;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
-use ratatui::Frame;
 
 /// Render the help overlay.
 pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
@@ -39,7 +39,12 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
         Line::from(""),
         help_line("j / k", "Scroll down / up", key_style, desc_style),
         help_line("gg / G", "Jump to top / bottom", key_style, desc_style),
-        help_line("Ctrl-d / Ctrl-u", "Half-page down / up", key_style, desc_style),
+        help_line(
+            "Ctrl-d / Ctrl-u",
+            "Half-page down / up",
+            key_style,
+            desc_style,
+        ),
         help_line("l / Enter", "Open thread", key_style, desc_style),
         help_line("h / Esc", "Go back", key_style, desc_style),
         help_line("f", "Like post", key_style, desc_style),
@@ -58,7 +63,12 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
         Line::from(""),
         help_line("1-9", "Switch workspace", key_style, desc_style),
         help_line("Tab", "Cycle pane focus", key_style, desc_style),
-        help_line("Ctrl-w h/j/k/l", "Focus pane direction", key_style, desc_style),
+        help_line(
+            "Ctrl-w h/j/k/l",
+            "Focus pane direction",
+            key_style,
+            desc_style,
+        ),
         help_line("Ctrl-w +/-/</>", "Resize pane", key_style, desc_style),
         help_line("Ctrl-w =", "Equalize panes", key_style, desc_style),
         help_line("Ctrl-w o", "Zoom pane", key_style, desc_style),
@@ -92,12 +102,7 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
     frame.render_widget(paragraph, popup_area);
 }
 
-fn help_line<'a>(
-    key: &'a str,
-    desc: &'a str,
-    key_style: Style,
-    desc_style: Style,
-) -> Line<'a> {
+fn help_line<'a>(key: &'a str, desc: &'a str, key_style: Style, desc_style: Style) -> Line<'a> {
     let padding = 20usize.saturating_sub(key.len());
     Line::from(vec![
         Span::styled(format!("  {}", key), key_style),

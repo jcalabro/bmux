@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::DmsPane;
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
-use ratatui::Frame;
 
 /// Render the DMs pane.
 pub fn render_dms_pane(
@@ -37,8 +37,8 @@ pub fn render_dms_pane(
     }
 
     // Split: conversation list (left) | messages (right).
-    let chunks = Layout::horizontal([Constraint::Percentage(35), Constraint::Percentage(65)])
-        .split(inner);
+    let chunks =
+        Layout::horizontal([Constraint::Percentage(35), Constraint::Percentage(65)]).split(inner);
 
     // Conversation list.
     render_convo_list(frame, chunks[0], pane, theme);
@@ -118,8 +118,7 @@ fn render_message_view(frame: &mut Frame, area: Rect, pane: &DmsPane, theme: &Th
     }
 
     // Messages area + compose input.
-    let chunks =
-        Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(area);
+    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(3)]).split(area);
 
     // Messages.
     let mut lines = Vec::new();

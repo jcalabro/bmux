@@ -256,10 +256,7 @@ pub enum AppMessage {
     Ui(UiAction),
     Api(Box<ApiResponse>),
     NotificationPoll(Vec<Notification>, usize),
-    ImageReady {
-        url: String,
-        data: ImageData,
-    },
+    ImageReady { url: String, data: ImageData },
     Toast(Toast),
 }
 

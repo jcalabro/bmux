@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::input::vim::VimMode;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 /// Render the bottom status bar showing vim mode and contextual hints.
 pub fn render_status_bar(
@@ -37,7 +37,9 @@ pub fn render_status_bar(
 
     let hints = match mode {
         VimMode::Normal => match focused_pane_type {
-            "feed" => "j/k:scroll  l:thread  f:like  b:repost  r:reply  t:quote  c:compose  /:search  ?:help",
+            "feed" => {
+                "j/k:scroll  l:thread  f:like  b:repost  r:reply  t:quote  c:compose  /:search  ?:help"
+            }
             "thread" => "j/k:scroll  h:back  f:like  b:repost  r:reply  t:quote  ?:help",
             "dms" => "j/k:scroll  l:open  c:compose  ?:help",
             "notifications" => "j/k:scroll  l:open  ?:help",

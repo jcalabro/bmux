@@ -133,9 +133,9 @@ impl VimState {
             KeyCode::Char('q') => Some(UiAction::Quit),
             KeyCode::Char('?') => Some(UiAction::ShowHelp),
             KeyCode::Tab => Some(UiAction::CyclePaneFocus),
-            KeyCode::Char(c @ '1'..='9') => {
-                Some(UiAction::SwitchWorkspace(c.to_digit(10).unwrap() as usize - 1))
-            }
+            KeyCode::Char(c @ '1'..='9') => Some(UiAction::SwitchWorkspace(
+                c.to_digit(10).unwrap() as usize - 1,
+            )),
             _ => None,
         }
     }
@@ -259,15 +259,24 @@ mod tests {
     #[test]
     fn test_normal_mode_navigation() {
         let mut state = VimState::new();
-        assert_eq!(state.handle_key(key(KeyCode::Char('j'))), Some(UiAction::ScrollDown));
-        assert_eq!(state.handle_key(key(KeyCode::Char('k'))), Some(UiAction::ScrollUp));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('j'))),
+            Some(UiAction::ScrollDown)
+        );
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('k'))),
+            Some(UiAction::ScrollUp)
+        );
     }
 
     #[test]
     fn test_gg_goto_top() {
         let mut state = VimState::new();
         assert_eq!(state.handle_key(key(KeyCode::Char('g'))), None);
-        assert_eq!(state.handle_key(key(KeyCode::Char('g'))), Some(UiAction::GotoTop));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('g'))),
+            Some(UiAction::GotoTop)
+        );
     }
 
     #[test]
@@ -295,21 +304,33 @@ mod tests {
     #[test]
     fn test_like_repost() {
         let mut state = VimState::new();
-        assert_eq!(state.handle_key(key(KeyCode::Char('f'))), Some(UiAction::Like));
-        assert_eq!(state.handle_key(key(KeyCode::Char('b'))), Some(UiAction::Repost));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('f'))),
+            Some(UiAction::Like)
+        );
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('b'))),
+            Some(UiAction::Repost)
+        );
     }
 
     #[test]
     fn test_compose_enters_insert_mode() {
         let mut state = VimState::new();
-        assert_eq!(state.handle_key(key(KeyCode::Char('c'))), Some(UiAction::ComposeNew));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('c'))),
+            Some(UiAction::ComposeNew)
+        );
         assert_eq!(state.mode, VimMode::Insert);
     }
 
     #[test]
     fn test_reply_enters_insert_mode() {
         let mut state = VimState::new();
-        assert_eq!(state.handle_key(key(KeyCode::Char('r'))), Some(UiAction::Reply));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Char('r'))),
+            Some(UiAction::Reply)
+        );
         assert_eq!(state.mode, VimMode::Insert);
     }
 
@@ -317,7 +338,10 @@ mod tests {
     fn test_insert_mode_esc_returns_normal() {
         let mut state = VimState::new();
         state.mode = VimMode::Insert;
-        assert_eq!(state.handle_key(key(KeyCode::Esc)), Some(UiAction::CancelCompose));
+        assert_eq!(
+            state.handle_key(key(KeyCode::Esc)),
+            Some(UiAction::CancelCompose)
+        );
         assert_eq!(state.mode, VimMode::Normal);
     }
 

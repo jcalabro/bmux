@@ -4,11 +4,7 @@ use tokio::sync::mpsc;
 use tokio::time::{self, Duration};
 
 /// Poll task: periodically checks for new notifications.
-pub async fn run_poll_task(
-    agent: AppAgent,
-    tx: mpsc::Sender<AppMessage>,
-    interval_secs: u64,
-) {
+pub async fn run_poll_task(agent: AppAgent, tx: mpsc::Sender<AppMessage>, interval_secs: u64) {
     let mut interval = time::interval(Duration::from_secs(interval_secs));
     let mut last_unread_count = 0usize;
 
@@ -19,10 +15,7 @@ pub async fn run_poll_task(
             Ok((notifications, _, unread_count)) => {
                 // Send notification update.
                 let _ = tx
-                    .send(AppMessage::NotificationPoll(
-                        notifications,
-                        unread_count,
-                    ))
+                    .send(AppMessage::NotificationPoll(notifications, unread_count))
                     .await;
 
                 // Show toast if new notifications arrived.

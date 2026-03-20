@@ -1,9 +1,9 @@
 use crate::config::theme::Theme;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 /// Render the top workspace tab bar.
 pub fn render_workspace_tabs(
@@ -60,10 +60,7 @@ pub fn render_workspace_tabs(
         " ".repeat(padding),
         Style::default().bg(theme.bg),
     ));
-    spans.push(Span::styled(
-        right_info,
-        Style::default().fg(theme.muted),
-    ));
+    spans.push(Span::styled(right_info, Style::default().fg(theme.muted)));
 
     let line = Line::from(spans);
     let paragraph = Paragraph::new(line).style(Style::default().bg(theme.bg));

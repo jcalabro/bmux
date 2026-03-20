@@ -2,11 +2,11 @@ use crate::config::theme::Theme;
 use crate::ui::pane::FeedPane;
 use crate::ui::widgets::post_card::{post_card_height, render_post_card};
 use crate::ui::widgets::tab_bar::render_feed_tabs;
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 use ratatui_image::protocol::StatefulProtocol;
 use std::collections::HashMap;
 

@@ -79,11 +79,7 @@ impl Pane {
         }
     }
 
-    pub fn new_compose(
-        id: PaneId,
-        reply_to: Option<ReplyRef>,
-        quote: Option<QuoteRef>,
-    ) -> Self {
+    pub fn new_compose(id: PaneId, reply_to: Option<ReplyRef>, quote: Option<QuoteRef>) -> Self {
         Self {
             id,
             kind: PaneKind::Compose(ComposePane {
@@ -157,9 +153,7 @@ impl ThreadPane {
         depth: usize,
         is_root: bool,
     ) {
-        if is_root
-            && let Some(parent) = &thread.parent
-        {
+        if is_root && let Some(parent) = &thread.parent {
             Self::flatten_parent_chain(out, parent, 0);
         }
 

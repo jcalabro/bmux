@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::ComposePane;
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 const MAX_GRAPHEMES: usize = 300;
 
@@ -47,8 +47,7 @@ pub fn render_compose_pane(
     }
 
     // Layout: text area + status line.
-    let chunks =
-        Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(inner);
+    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(1)]).split(inner);
 
     // Text area.
     let text_style = Style::default().fg(theme.fg);

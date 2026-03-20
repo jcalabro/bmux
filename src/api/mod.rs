@@ -36,68 +36,61 @@ async fn handle_request(agent: &AppAgent, request: ApiRequest) -> ApiResponse {
                 },
             }
         }
-        ApiRequest::FetchThread { uri } => {
-            match client::fetch_thread(agent, &uri).await {
-                Ok(thread) => ApiResponse::Thread { uri, thread: Box::new(thread) },
-                Err(e) => ApiResponse::Error {
-                    request_description: format!("fetch thread {}", uri),
-                    error: e.to_string(),
-                },
-            }
-        }
-        ApiRequest::FetchProfile { actor } => {
-            match client::fetch_profile(agent, &actor).await {
-                Ok(profile) => ApiResponse::Profile(profile),
-                Err(e) => ApiResponse::Error {
-                    request_description: format!("fetch profile {}", actor),
-                    error: e.to_string(),
-                },
-            }
-        }
-        ApiRequest::CreatePost { text, reply_to, quote } => {
-            match client::create_post(agent, &text, reply_to.as_ref(), quote.as_ref()).await {
-                Ok(uri) => ApiResponse::PostCreated { uri },
-                Err(e) => ApiResponse::Error {
-                    request_description: "create post".into(),
-                    error: e.to_string(),
-                },
-            }
-        }
-        ApiRequest::LikePost { uri, cid } => {
-            match client::like_post(agent, &uri, &cid).await {
-                Ok(like_uri) => ApiResponse::PostLiked {
-                    post_uri: uri,
-                    like_uri,
-                },
-                Err(e) => ApiResponse::Error {
-                    request_description: format!("like post {}", uri),
-                    error: e.to_string(),
-                },
-            }
-        }
-        ApiRequest::UnlikePost { like_uri } => {
-            match client::unlike_post(agent, &like_uri).await {
-                Ok(()) => ApiResponse::PostUnliked {
-                    post_uri: like_uri,
-                },
-                Err(e) => ApiResponse::Error {
-                    request_description: "unlike post".into(),
-                    error: e.to_string(),
-                },
-            }
-        }
-        ApiRequest::RepostPost { uri, cid } => {
-            match client::repost_post(agent, &uri, &cid).await {
-                Ok(repost_uri) => ApiResponse::PostReposted {
-                    post_uri: uri,
-                    repost_uri,
-                },
-                Err(e) => ApiResponse::Error {
-                    request_description: format!("repost {}", uri),
-                    error: e.to_string(),
-                },
-            }
-        }
+        ApiRequest::FetchThread { uri } => match client::fetch_thread(agent, &uri).await {
+            Ok(thread) => ApiResponse::Thread {
+                uri,
+                thread: Box::new(thread),
+            },
+            Err(e) => ApiResponse::Error {
+                request_description: format!("fetch thread {}", uri),
+                error: e.to_string(),
+            },
+        },
+        ApiRequest::FetchProfile { actor } => match client::fetch_profile(agent, &actor).await {
+            Ok(profile) => ApiResponse::Profile(profile),
+            Err(e) => ApiResponse::Error {
+                request_description: format!("fetch profile {}", actor),
+                error: e.to_string(),
+            },
+        },
+        ApiRequest::CreatePost {
+            text,
+            reply_to,
+            quote,
+        } => match client::create_post(agent, &text, reply_to.as_ref(), quote.as_ref()).await {
+            Ok(uri) => ApiResponse::PostCreated { uri },
+            Err(e) => ApiResponse::Error {
+                request_description: "create post".into(),
+                error: e.to_string(),
+            },
+        },
+        ApiRequest::LikePost { uri, cid } => match client::like_post(agent, &uri, &cid).await {
+            Ok(like_uri) => ApiResponse::PostLiked {
+                post_uri: uri,
+                like_uri,
+            },
+            Err(e) => ApiResponse::Error {
+                request_description: format!("like post {}", uri),
+                error: e.to_string(),
+            },
+        },
+        ApiRequest::UnlikePost { like_uri } => match client::unlike_post(agent, &like_uri).await {
+            Ok(()) => ApiResponse::PostUnliked { post_uri: like_uri },
+            Err(e) => ApiResponse::Error {
+                request_description: "unlike post".into(),
+                error: e.to_string(),
+            },
+        },
+        ApiRequest::RepostPost { uri, cid } => match client::repost_post(agent, &uri, &cid).await {
+            Ok(repost_uri) => ApiResponse::PostReposted {
+                post_uri: uri,
+                repost_uri,
+            },
+            Err(e) => ApiResponse::Error {
+                request_description: format!("repost {}", uri),
+                error: e.to_string(),
+            },
+        },
         ApiRequest::FetchNotifications { cursor } => {
             match client::fetch_notifications(agent, cursor.as_deref()).await {
                 Ok((notifications, next_cursor, unread_count)) => ApiResponse::Notifications {
@@ -132,15 +125,13 @@ async fn handle_request(agent: &AppAgent, request: ApiRequest) -> ApiResponse {
                 },
             }
         }
-        ApiRequest::FollowUser { did } => {
-            match client::follow_user(agent, &did).await {
-                Ok(follow_uri) => ApiResponse::UserFollowed { did, follow_uri },
-                Err(e) => ApiResponse::Error {
-                    request_description: "follow user".into(),
-                    error: e.to_string(),
-                },
-            }
-        }
+        ApiRequest::FollowUser { did } => match client::follow_user(agent, &did).await {
+            Ok(follow_uri) => ApiResponse::UserFollowed { did, follow_uri },
+            Err(e) => ApiResponse::Error {
+                request_description: "follow user".into(),
+                error: e.to_string(),
+            },
+        },
         ApiRequest::SearchPosts { query, cursor } => {
             match client::search_posts(agent, &query, cursor.as_deref()).await {
                 Ok((posts, next_cursor)) => ApiResponse::SearchResults {

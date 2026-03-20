@@ -15,8 +15,8 @@ use crate::input::vim::VimMode;
 use crate::ui::pane::{Pane, PaneKind};
 use crate::ui::toast::ToastManager;
 use crate::ui::workspace::{PaneId, Workspace};
-use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::Frame;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui_image::protocol::StatefulProtocol;
 use std::collections::HashMap;
 

@@ -19,11 +19,7 @@ pub async fn run_input_task(tx: mpsc::Sender<AppMessage>) {
                 // will feed it through the VimState.
                 // For simplicity, we do vim processing in the app actor
                 // since it needs access to the current mode.
-                if tx
-                    .send(AppMessage::Ui(UiAction::Tick))
-                    .await
-                    .is_err()
-                {
+                if tx.send(AppMessage::Ui(UiAction::Tick)).await.is_err() {
                     break;
                 }
                 // Actually, we need to send the raw key. Let's use a wrapper.

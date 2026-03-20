@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::ui::pane::{ProfilePane, ProfileTab};
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use ratatui::Frame;
 
 /// Render a profile pane.
 pub fn render_profile_pane(
@@ -44,17 +44,12 @@ pub fn render_profile_pane(
     let chunks = Layout::vertical([Constraint::Length(8), Constraint::Min(0)]).split(inner);
 
     // Profile header.
-    let display_name = profile
-        .display_name
-        .as_deref()
-        .unwrap_or(&profile.handle);
+    let display_name = profile.display_name.as_deref().unwrap_or(&profile.handle);
 
     let mut header_lines = vec![
         Line::from(Span::styled(
             display_name,
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::styled(
             format!("@{}", profile.handle),
@@ -64,30 +59,27 @@ pub fn render_profile_pane(
     ];
 
     if let Some(desc) = &profile.description {
-        header_lines.push(Line::from(Span::styled(desc, Style::default().fg(theme.fg))));
+        header_lines.push(Line::from(Span::styled(
+            desc,
+            Style::default().fg(theme.fg),
+        )));
         header_lines.push(Line::from(""));
     }
 
     header_lines.push(Line::from(vec![
         Span::styled(
             format!("{} ", profile.followers_count),
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         ),
         Span::styled("followers  ", Style::default().fg(theme.muted)),
         Span::styled(
             format!("{} ", profile.follows_count),
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         ),
         Span::styled("following  ", Style::default().fg(theme.muted)),
         Span::styled(
             format!("{} ", profile.posts_count),
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         ),
         Span::styled("posts", Style::default().fg(theme.muted)),
     ]));
@@ -140,5 +132,11 @@ pub fn render_profile_pane(
 
     let tabs_area = Rect::new(chunks[1].x, chunks[1].y, chunks[1].width, 1);
     let tab_names_owned: Vec<String> = tab_names.iter().map(|s| s.to_string()).collect();
-    crate::ui::widgets::tab_bar::render_feed_tabs(frame, tabs_area, &tab_names_owned, active_idx, theme);
+    crate::ui::widgets::tab_bar::render_feed_tabs(
+        frame,
+        tabs_area,
+        &tab_names_owned,
+        active_idx,
+        theme,
+    );
 }

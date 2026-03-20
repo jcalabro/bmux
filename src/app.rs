@@ -1,8 +1,8 @@
-use crate::config::theme::Theme;
 use crate::config::AppConfig;
-use crate::input::vim::{self, VimState};
+use crate::config::theme::Theme;
 #[cfg(test)]
 use crate::input::vim::VimMode;
+use crate::input::vim::{self, VimState};
 use crate::messages::*;
 use crate::ui::pane::*;
 use crate::ui::toast::ToastManager;
@@ -251,13 +251,17 @@ impl App {
             UiAction::CyclePaneFocus => {
                 self.active_ws_mut().cycle_focus();
             }
-            UiAction::FocusPaneLeft | UiAction::FocusPaneRight
-            | UiAction::FocusPaneUp | UiAction::FocusPaneDown => {
+            UiAction::FocusPaneLeft
+            | UiAction::FocusPaneRight
+            | UiAction::FocusPaneUp
+            | UiAction::FocusPaneDown => {
                 // Simplified: just cycle for now.
                 self.active_ws_mut().cycle_focus();
             }
-            UiAction::ResizePaneGrow | UiAction::ResizePaneShrink
-            | UiAction::ResizePaneWider | UiAction::ResizePaneNarrower => {
+            UiAction::ResizePaneGrow
+            | UiAction::ResizePaneShrink
+            | UiAction::ResizePaneWider
+            | UiAction::ResizePaneNarrower => {
                 let delta = match action {
                     UiAction::ResizePaneGrow | UiAction::ResizePaneWider => 0.05,
                     _ => -0.05,
@@ -280,7 +284,8 @@ impl App {
             UiAction::SubmitPost => self.submit_post(),
             UiAction::CancelCompose => self.cancel_compose(),
             UiAction::AttachImage => {
-                self.toast_manager.push(Toast::info("Image attach not yet implemented"));
+                self.toast_manager
+                    .push(Toast::info("Image attach not yet implemented"));
             }
             UiAction::SwitchToEditor => self.compose_in_editor(),
 
@@ -289,8 +294,10 @@ impl App {
             UiAction::InsertBackspace => self.insert_backspace(),
             UiAction::InsertDelete => self.insert_delete(),
             UiAction::InsertNewline => self.insert_char('\n'),
-            UiAction::InsertMoveLeft | UiAction::InsertMoveRight
-            | UiAction::InsertMoveHome | UiAction::InsertMoveEnd => {
+            UiAction::InsertMoveLeft
+            | UiAction::InsertMoveRight
+            | UiAction::InsertMoveHome
+            | UiAction::InsertMoveEnd => {
                 // Cursor movement in compose — handled by ComposePane.
             }
         }
@@ -342,13 +349,20 @@ impl App {
             ApiResponse::PostUnliked { post_uri } => {
                 self.update_post_like(&post_uri, None);
             }
-            ApiResponse::PostReposted { post_uri, repost_uri } => {
+            ApiResponse::PostReposted {
+                post_uri,
+                repost_uri,
+            } => {
                 self.update_post_repost(&post_uri, Some(repost_uri));
             }
             ApiResponse::PostUnreposted { post_uri } => {
                 self.update_post_repost(&post_uri, None);
             }
-            ApiResponse::Notifications { notifications, cursor: _, unread_count } => {
+            ApiResponse::Notifications {
+                notifications,
+                cursor: _,
+                unread_count,
+            } => {
                 self.unread_notifs = unread_count;
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Notifications(ref mut np) = pane.kind {
@@ -357,7 +371,10 @@ impl App {
                     }
                 }
             }
-            ApiResponse::Conversations { conversations, cursor: _ } => {
+            ApiResponse::Conversations {
+                conversations,
+                cursor: _,
+            } => {
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Dms(ref mut dp) = pane.kind {
                         dp.conversations = conversations.clone();
@@ -367,7 +384,11 @@ impl App {
             ApiResponse::MessageSent { convo_id: _ } => {
                 self.toast_manager.push(Toast::success("Message sent"));
             }
-            ApiResponse::SearchResults { query: _, posts, cursor } => {
+            ApiResponse::SearchResults {
+                query: _,
+                posts,
+                cursor,
+            } => {
                 // Put results in the feed pane.
                 for pane in self.panes.values_mut() {
                     if let PaneKind::Feed(ref mut fp) = pane.kind
@@ -380,7 +401,10 @@ impl App {
                     }
                 }
             }
-            ApiResponse::Error { request_description, error } => {
+            ApiResponse::Error {
+                request_description,
+                error,
+            } => {
                 self.toast_manager.push(Toast::error(format!(
                     "Error ({}): {}",
                     request_description, error
@@ -425,7 +449,10 @@ impl App {
                     self.active_workspace = idx;
                 } else {
                     let id = self.alloc_pane_id();
-                    let feed_tabs = self.config.feeds.tabs
+                    let feed_tabs = self
+                        .config
+                        .feeds
+                        .tabs
                         .iter()
                         .map(|t| FeedTab::new(&t.name, &t.uri))
                         .collect();
@@ -600,9 +627,7 @@ impl App {
                 let tab = fp.active_tab()?;
                 tab.posts.get(tab.selected)
             }
-            PaneKind::Thread(tp) => {
-                tp.flattened.get(tp.cursor).map(|e| &e.post)
-            }
+            PaneKind::Thread(tp) => tp.flattened.get(tp.cursor).map(|e| &e.post),
             _ => None,
         }
     }
@@ -745,11 +770,7 @@ impl App {
         }
     }
 
-    fn open_compose_pane(
-        &mut self,
-        reply_to: Option<ReplyRef>,
-        quote: Option<QuoteRef>,
-    ) {
+    fn open_compose_pane(&mut self, reply_to: Option<ReplyRef>, quote: Option<QuoteRef>) {
         let id = self.alloc_pane_id();
         let pane = Pane::new_compose(id, reply_to, quote);
         self.panes.insert(id, pane);
@@ -852,7 +873,9 @@ impl App {
         if let Some(pane) = self.panes.get_mut(&id) {
             match &mut pane.kind {
                 PaneKind::Compose(cp) => cp.backspace(),
-                PaneKind::Dms(dp) => { dp.draft.pop(); }
+                PaneKind::Dms(dp) => {
+                    dp.draft.pop();
+                }
                 _ => {}
             }
         }
@@ -905,7 +928,10 @@ impl App {
 
     fn split_pane(&mut self, direction: SplitDirection, pane_type: &str) {
         let id = self.alloc_pane_id();
-        let feed_tabs = self.config.feeds.tabs
+        let feed_tabs = self
+            .config
+            .feeds
+            .tabs
             .iter()
             .map(|t| FeedTab::new(&t.name, &t.uri))
             .collect();
@@ -915,9 +941,7 @@ impl App {
             "thread" => Pane::new_thread(id),
             "dms" => Pane::new_dms(id),
             "notifs" | "notifications" => Pane::new_notifications(id),
-            s if s.starts_with("profile") => {
-                Pane::new_profile(id)
-            }
+            s if s.starts_with("profile") => Pane::new_profile(id),
             _ => Pane::new_feed(id, feed_tabs),
         };
 
@@ -950,15 +974,23 @@ impl App {
 
     pub fn request_initial_data(&self) {
         // Fetch the home timeline.
-        let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+        let _ = self
+            .api_tx
+            .try_send(ApiRequest::FetchTimeline { cursor: None });
         // Fetch notifications.
-        let _ = self.api_tx.try_send(ApiRequest::FetchNotifications { cursor: None });
+        let _ = self
+            .api_tx
+            .try_send(ApiRequest::FetchNotifications { cursor: None });
         // Fetch conversations.
-        let _ = self.api_tx.try_send(ApiRequest::FetchConversations { cursor: None });
+        let _ = self
+            .api_tx
+            .try_send(ApiRequest::FetchConversations { cursor: None });
     }
 
     fn request_timeline_refresh(&self) {
-        let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+        let _ = self
+            .api_tx
+            .try_send(ApiRequest::FetchTimeline { cursor: None });
     }
 
     /// Request image downloads for any image embeds in posts.
@@ -998,11 +1030,15 @@ impl App {
         {
             match tab.uri.as_str() {
                 "following" => {
-                    let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+                    let _ = self
+                        .api_tx
+                        .try_send(ApiRequest::FetchTimeline { cursor: None });
                 }
                 "discover" => {
                     // Discover would use a different feed.
-                    let _ = self.api_tx.try_send(ApiRequest::FetchTimeline { cursor: None });
+                    let _ = self
+                        .api_tx
+                        .try_send(ApiRequest::FetchTimeline { cursor: None });
                 }
                 uri => {
                     let _ = self.api_tx.try_send(ApiRequest::FetchFeed {
@@ -1199,7 +1235,7 @@ mod tests {
                         liked_by_me: None,
                         reposted_by_me: None,
                         reply_to: None,
-            reply_context: None,
+                        reply_context: None,
                         embed: None,
                         reposted_by: None,
                     });

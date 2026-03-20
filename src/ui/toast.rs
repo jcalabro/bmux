@@ -1,10 +1,10 @@
 use crate::config::theme::Theme;
 use crate::messages::{Toast, ToastLevel};
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use ratatui::Frame;
 use std::collections::VecDeque;
 
 /// Toast notification manager.
@@ -46,7 +46,9 @@ impl ToastManager {
         let toast_height = 3u16;
 
         for (i, toast) in visible.iter().enumerate() {
-            let y_offset = area.height.saturating_sub((i as u16 + 1) * (toast_height + 1) + 2);
+            let y_offset = area
+                .height
+                .saturating_sub((i as u16 + 1) * (toast_height + 1) + 2);
             let x_offset = area.width.saturating_sub(toast_width + 2);
 
             let toast_area = Rect::new(x_offset, y_offset, toast_width, toast_height);

@@ -34,7 +34,10 @@ The binary lands in `target/release/bmux`.
 ## Usage
 
 ```bash
-# Login with flags
+# Log in with oauth
+bmux -u your.handle
+
+# Login with an app passwod
 bmux -u your.handle -p your-app-password
 
 # Or use environment variables
@@ -43,7 +46,7 @@ export BMUX_PASSWORD="your-app-password"
 bmux
 ```
 
-Use an [App Password](https://bsky.app/settings/app-passwords) — not your main password.
+Be sure to use an [App Password](https://bsky.app/settings/app-passwords) — not your main password.
 
 ## Development
 

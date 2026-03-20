@@ -1,9 +1,9 @@
 use crate::config::theme::Theme;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 /// Image rendering protocol detection.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -54,12 +54,7 @@ pub fn parse_image_protocol(config_value: &str) -> ImageProtocol {
 
 /// Render an image placeholder or alt text.
 #[allow(dead_code)]
-pub fn render_image_placeholder(
-    frame: &mut Frame,
-    area: Rect,
-    alt_text: &str,
-    theme: &Theme,
-) {
+pub fn render_image_placeholder(frame: &mut Frame, area: Rect, alt_text: &str, theme: &Theme) {
     if area.height == 0 || area.width == 0 {
         return;
     }

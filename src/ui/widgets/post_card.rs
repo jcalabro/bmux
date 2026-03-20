@@ -1,11 +1,11 @@
 use crate::config::theme::Theme;
 use crate::messages::{Post, PostEmbed};
 use crate::ui::widgets::rich_text::render_rich_text;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui::Frame;
 use ratatui_image::StatefulImage;
 use ratatui_image::protocol::StatefulProtocol;
 use std::collections::HashMap;
@@ -64,9 +64,14 @@ pub fn render_post_card(
                         inner.x + 2,
                         img_y + (i as u16 * img_height),
                         inner.width.saturating_sub(4),
-                        img_height.min(inner.height.saturating_sub(img_y - inner.y + i as u16 * img_height)),
+                        img_height.min(
+                            inner
+                                .height
+                                .saturating_sub(img_y - inner.y + i as u16 * img_height),
+                        ),
                     );
-                    if img_area.height > 0 && img_area.y + img_area.height <= inner.y + inner.height {
+                    if img_area.height > 0 && img_area.y + img_area.height <= inner.y + inner.height
+                    {
                         let image_widget = StatefulImage::default();
                         frame.render_stateful_widget(image_widget, img_area, proto);
                     }
@@ -82,10 +87,7 @@ fn build_post_lines(post: &Post, theme: &Theme, width: usize) -> Vec<Line<'stati
 
     // Repost indicator.
     if let Some(reposter) = &post.reposted_by {
-        let name = reposter
-            .display_name
-            .as_deref()
-            .unwrap_or(&reposter.handle);
+        let name = reposter.display_name.as_deref().unwrap_or(&reposter.handle);
         lines.push(Line::from(Span::styled(
             format!("↻ {} reposted", name),
             Style::default().fg(theme.repost),
@@ -146,9 +148,7 @@ fn build_post_lines(post: &Post, theme: &Theme, width: usize) -> Vec<Line<'stati
     lines.push(Line::from(vec![
         Span::styled(
             format!("{} ", display_name),
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             format!("@{}", post.author.handle),
@@ -269,7 +269,11 @@ fn render_quoted_post_lines(
     theme: &Theme,
     width: usize,
 ) {
-    let qp_name = qp.author.display_name.as_deref().unwrap_or(&qp.author.handle);
+    let qp_name = qp
+        .author
+        .display_name
+        .as_deref()
+        .unwrap_or(&qp.author.handle);
     let qp_time = format_relative_time(&qp.created_at);
 
     // Top border of quote box.
@@ -284,9 +288,7 @@ fn render_quoted_post_lines(
         Span::styled("  │ ", Style::default().fg(theme.border)),
         Span::styled(
             format!("{} ", qp_name),
-            Style::default()
-                .fg(theme.fg)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.fg).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             format!("@{}", qp.author.handle),
@@ -326,11 +328,7 @@ fn get_image_urls(embed: &PostEmbed) -> Vec<&str> {
 
 /// Estimate how many rows a post card will take.
 pub fn post_card_height(post: &Post, width: u16) -> u16 {
-    let inner_width = if width > 4 {
-        (width - 4) as usize
-    } else {
-        1
-    };
+    let inner_width = if width > 4 { (width - 4) as usize } else { 1 };
 
     let text_lines = (post.text.len() / inner_width.max(1) + 1) as u16;
 
@@ -339,7 +337,11 @@ pub fn post_card_height(post: &Post, width: u16) -> u16 {
     let embed_lines: u16 = match &post.embed {
         Some(PostEmbed::Images(imgs)) => imgs.len() as u16,
         Some(PostEmbed::External { description, .. }) => {
-            if description.is_empty() { 2 } else { 3 }
+            if description.is_empty() {
+                2
+            } else {
+                3
+            }
         }
         Some(PostEmbed::Record(qp)) => {
             // borders(2) + author(1) + text lines
@@ -398,7 +400,10 @@ fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
 /// Truncate text to fit within a max width, adding ellipsis.
 fn truncate_text(text: &str, max_len: usize) -> String {
     // Collapse newlines to spaces for inline preview.
-    let flat: String = text.chars().map(|c| if c == '\n' { ' ' } else { c }).collect();
+    let flat: String = text
+        .chars()
+        .map(|c| if c == '\n' { ' ' } else { c })
+        .collect();
     if flat.len() <= max_len {
         flat
     } else if max_len > 3 {
@@ -572,9 +577,9 @@ mod tests {
         let theme = crate::config::theme::Theme::bluesky();
         let lines = build_post_lines(&post, &theme, 80);
         // Should contain the reply indicator line.
-        let has_reply = lines.iter().any(|l| {
-            l.spans.iter().any(|s| s.content.contains("@parent"))
-        });
+        let has_reply = lines
+            .iter()
+            .any(|l| l.spans.iter().any(|s| s.content.contains("@parent")));
         assert!(has_reply);
     }
 
@@ -595,14 +600,14 @@ mod tests {
         let theme = crate::config::theme::Theme::bluesky();
         let lines = build_post_lines(&post, &theme, 80);
         // Should contain the quoted post's text somewhere.
-        let has_quote = lines.iter().any(|l| {
-            l.spans.iter().any(|s| s.content.contains("hot take"))
-        });
+        let has_quote = lines
+            .iter()
+            .any(|l| l.spans.iter().any(|s| s.content.contains("hot take")));
         assert!(has_quote);
         // Should have box-drawing characters.
-        let has_border = lines.iter().any(|l| {
-            l.spans.iter().any(|s| s.content.contains('┌'))
-        });
+        let has_border = lines
+            .iter()
+            .any(|l| l.spans.iter().any(|s| s.content.contains('┌')));
         assert!(has_border);
     }
 }

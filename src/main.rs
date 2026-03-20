@@ -80,9 +80,7 @@ async fn main() -> Result<()> {
         .or_else(|| app_config.auth.identifier.clone())
         .or_else(|| std::env::var("BMUX_IDENTIFIER").ok());
 
-    let password = cli
-        .password
-        .or_else(|| std::env::var("BMUX_PASSWORD").ok());
+    let password = cli.password.or_else(|| std::env::var("BMUX_PASSWORD").ok());
 
     let service = app_config
         .auth
@@ -90,30 +88,58 @@ async fn main() -> Result<()> {
         .clone()
         .unwrap_or(cli.service.clone());
 
-    let (identifier, password) = match (identifier, password) {
-        (Some(id), Some(pw)) => (id, pw),
-        (Some(id), None) => {
-            eprint!("Password for {}: ", id);
-            let pw = read_password()?;
-            (id, pw)
+    let token_path = auth::oauth::token_file_path(app_config.auth.token_file.as_deref());
+    let redirect_port = app_config.auth.redirect_port;
+
+    // Auth priority:
+    // 1. Try to restore a saved OAuth session
+    // 2. If --password or $BMUX_PASSWORD is provided, use app password
+    // 3. Otherwise, run the OAuth browser flow
+    let agent = if let Some(id) = &identifier {
+        // Try restoring an existing OAuth session first.
+        if let Some(agent) = auth::oauth::try_restore_session(&token_path, id).await {
+            eprintln!("Restored OAuth session for @{}", agent.handle());
+            agent
+        } else if let Some(pw) = &password {
+            // Fall back to app password.
+            eprintln!("Logging in as {} with app password...", id);
+            auth::login_with_app_password(&service, id, pw)
+                .await
+                .context("App password login failed")?
+        } else {
+            // No password provided — use OAuth browser flow.
+            auth::oauth::login_with_browser(&token_path, id, redirect_port)
+                .await
+                .context("OAuth login failed")?
         }
-        _ => {
+    } else {
+        // No identifier provided at all. Try restoring any saved session.
+        if let Some(agent) = auth::oauth::try_restore_session(&token_path, "").await {
+            eprintln!("Restored OAuth session for @{}", agent.handle());
+            agent
+        } else if let Some(pw) = &password {
+            // Password without identifier — prompt for identifier.
             eprint!("Bluesky handle: ");
             let mut id = String::new();
             io::stdin().read_line(&mut id)?;
             let id = id.trim().to_string();
-            eprint!("Password: ");
-            let pw = read_password()?;
-            (id, pw)
+            eprintln!("Logging in as {} with app password...", id);
+            auth::login_with_app_password(&service, &id, pw)
+                .await
+                .context("App password login failed")?
+        } else {
+            // No identifier, no password — prompt for handle and use OAuth.
+            eprint!("Bluesky handle: ");
+            let mut id = String::new();
+            io::stdin().read_line(&mut id)?;
+            let id = id.trim().to_string();
+            auth::oauth::login_with_browser(&token_path, &id, redirect_port)
+                .await
+                .context("OAuth login failed")?
         }
     };
 
-    eprintln!("Logging in as {}...", identifier);
-    let agent = auth::login_with_app_password(&service, &identifier, &password)
-        .await
-        .context("Login failed")?;
-
-    let user_handle = agent.handle.clone();
+    let user_handle = agent.handle().to_string();
     eprintln!("Logged in as @{}! Starting bmux...", user_handle);
 
     // ── Set up channels ─────────────────────────────────────
@@ -229,6 +255,7 @@ async fn main() -> Result<()> {
 }
 
 /// Read a line from stdin (for password input).
+#[allow(dead_code)]
 fn read_password() -> Result<String> {
     let mut password = String::new();
     io::stdin().read_line(&mut password)?;
