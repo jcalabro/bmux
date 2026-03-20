@@ -220,7 +220,7 @@ async fn read_session_data(
     session: &OAuthSessionType,
 ) -> (String, String, DpopClientData<'static>) {
     let data = session.data.read().await;
-    let base_url = data.host_url.to_string();
+    let base_url = data.host_url.to_string().trim_end_matches('/').to_string();
     let token = data.token_set.access_token.to_string();
     let dpop = data.dpop_data.clone();
     (base_url, token, dpop)

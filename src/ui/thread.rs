@@ -59,26 +59,36 @@ pub fn render_thread_pane(
             .clone()
             .unwrap_or_else(|| entry.post.author.handle.clone());
 
+        // Selected posts get a background highlight and selection indicator.
+        let sel_bg = if is_selected {
+            Style::default().bg(theme.secondary)
+        } else {
+            Style::default()
+        };
+
         // Author line.
         let author_style = if is_selected {
             Style::default()
                 .fg(theme.accent)
+                .bg(theme.secondary)
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(theme.handle)
         };
 
         let connector = if entry.depth > 0 { "├─ " } else { "" };
+        let indicator = if is_selected { "▸ " } else { "  " };
 
         lines.push(Line::from(vec![
+            Span::styled(indicator, sel_bg.fg(theme.accent)),
             Span::styled(
                 format!("{}{}", indent, connector),
-                Style::default().fg(theme.border),
+                sel_bg.fg(theme.border),
             ),
             Span::styled(display_name, author_style),
             Span::styled(
                 format!(" @{}", entry.post.author.handle),
-                Style::default().fg(theme.muted),
+                sel_bg.fg(theme.muted),
             ),
         ]));
 
@@ -89,20 +99,34 @@ pub fn render_thread_pane(
             indent.clone()
         };
 
+        let text_style = if is_selected {
+            sel_bg.fg(theme.fg)
+        } else {
+            Style::default().fg(theme.fg)
+        };
+
         lines.push(Line::from(vec![
-            Span::styled(text_indent.clone(), Style::default().fg(theme.border)),
-            Span::styled(entry.post.text.clone(), Style::default().fg(theme.fg)),
+            Span::styled("  ", sel_bg),
+            Span::styled(text_indent.clone(), sel_bg.fg(theme.border)),
+            Span::styled(entry.post.text.clone(), text_style),
         ]));
 
         // Engagement.
+        let stats_style = if is_selected {
+            sel_bg.fg(theme.muted)
+        } else {
+            Style::default().fg(theme.muted)
+        };
+
         lines.push(Line::from(vec![
-            Span::styled(text_indent, Style::default().fg(theme.border)),
+            Span::styled("  ", sel_bg),
+            Span::styled(text_indent, sel_bg.fg(theme.border)),
             Span::styled(
                 format!(
                     "♥ {}  ↻ {}  💬 {}",
                     entry.post.like_count, entry.post.repost_count, entry.post.reply_count
                 ),
-                Style::default().fg(theme.muted),
+                stats_style,
             ),
         ]));
 
