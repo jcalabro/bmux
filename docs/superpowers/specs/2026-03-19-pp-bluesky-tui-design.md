@@ -1,12 +1,12 @@
-# alf — Design Spec
+# bmux — Design Spec
 
 > The tmux of Bluesky. A maximalist terminal user interface for Bluesky built in Rust.
 
 ## Overview
 
-`alf` is a terminal-based Bluesky client with tmux-style pane management, modal vim keybindings, inline image rendering, and full theming support. It connects to the Bluesky API via the `jacquard` crate and renders with `ratatui`.
+`bmux` is a terminal-based Bluesky client with tmux-style pane management, modal vim keybindings, inline image rendering, and full theming support. It connects to the Bluesky API via the `jacquard` crate and renders with `ratatui`.
 
-The binary is called `alf`.
+The binary is called `bmux`.
 
 ## Decisions
 
@@ -81,7 +81,7 @@ Six tokio tasks communicate through typed `mpsc` channels. No shared mutable sta
 The screen has three layers:
 
 ```
-┌─[ Home ]──[ Feed ]──[ DMs ]──[ Notifs ]─────── alf v0.1 │ @user │ 🔔 3 ─┐
+┌─[ Home ]──[ Feed ]──[ DMs ]──[ Notifs ]─────── bmux v0.1 │ @user │ 🔔 3 ─┐
 │                                                                           │
 │  ┌─────────────── Feed (2/3) ──────────────┬──── Thread (1/3) ──────────┐ │
 │  │                                         │                            │ │
@@ -196,7 +196,7 @@ Activated with `:` (colon).
 
 | Command | Action |
 |---------|--------|
-| `:q` | Quit alf |
+| `:q` | Quit bmux |
 | `:split {type}` | Horizontal split (feed, dms, notifs, profile @handle) |
 | `:vsplit {type}` | Vertical split |
 | `:close` | Close current pane |
@@ -281,7 +281,7 @@ Terminal image protocol is auto-detected at startup (check for Kitty first, then
 
 ### Config File
 
-Located at `~/.config/alf/config.toml`.
+Located at `~/.config/bmux/config.toml`.
 
 ```toml
 [general]
@@ -294,7 +294,7 @@ image_protocol = "auto"        # auto, sixel, kitty, none
 [oauth]
 client_id = "..."
 redirect_port = 8420
-token_file = "~/.config/alf/tokens.json"
+token_file = "~/.config/bmux/tokens.json"
 
 [feeds]
 tabs = [
@@ -341,14 +341,14 @@ repost     = "#44cc66"
 reply      = "#00c2ff"
 ```
 
-Custom themes inherit missing values from the default (bluesky). Users can define themes inline in `config.toml` or drop `.toml` files in `~/.config/alf/themes/`. Runtime switching with `:theme {name}`.
+Custom themes inherit missing values from the default (bluesky). Users can define themes inline in `config.toml` or drop `.toml` files in `~/.config/bmux/themes/`. Runtime switching with `:theme {name}`.
 
 Four built-in themes: **bluesky** (default — blues and whites), **hacker** (green/amber on black), **catppuccin** (soft pastels), **nord** (cool blues and grays).
 
 ### File Layout
 
 ```
-~/.config/alf/
+~/.config/bmux/
 ├── config.toml          # main config
 ├── tokens.json          # OAuth token persistence (auto-managed)
 └── themes/              # optional: extra theme files

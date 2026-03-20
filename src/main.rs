@@ -20,15 +20,15 @@ use std::io;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
-/// alf — the tmux of Bluesky
+/// bmux — the tmux of Bluesky
 #[derive(Parser, Debug)]
-#[command(name = "alf", version, about = "The tmux of Bluesky")]
+#[command(name = "bmux", version, about = "The tmux of Bluesky")]
 struct Cli {
     /// Bluesky handle or DID
     #[arg(short = 'u', long)]
     identifier: Option<String>,
 
-    /// App password (use env ALF_PASSWORD for security)
+    /// App password (use env BMUX_PASSWORD for security)
     #[arg(short = 'p', long)]
     password: Option<String>,
 
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("alf=info".parse().unwrap()),
+                .add_directive("bmux=info".parse().unwrap()),
         )
         .with_writer(io::stderr)
         .init();
@@ -78,11 +78,11 @@ async fn main() -> Result<()> {
     let identifier = cli
         .identifier
         .or_else(|| app_config.auth.identifier.clone())
-        .or_else(|| std::env::var("ALF_IDENTIFIER").ok());
+        .or_else(|| std::env::var("BMUX_IDENTIFIER").ok());
 
     let password = cli
         .password
-        .or_else(|| std::env::var("ALF_PASSWORD").ok());
+        .or_else(|| std::env::var("BMUX_PASSWORD").ok());
 
     let service = app_config
         .auth
@@ -114,7 +114,7 @@ async fn main() -> Result<()> {
         .context("Login failed")?;
 
     let user_handle = agent.handle.clone();
-    eprintln!("Logged in as @{}! Starting alf...", user_handle);
+    eprintln!("Logged in as @{}! Starting bmux...", user_handle);
 
     // ── Set up channels ─────────────────────────────────────
 

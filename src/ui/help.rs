@@ -20,7 +20,7 @@ pub fn render_help(frame: &mut Frame, area: Rect, theme: &Theme) {
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme.accent))
         .title(Span::styled(
-            " alf — Keybinding Reference ",
+            " bmux — Keybinding Reference ",
             Style::default()
                 .fg(theme.accent)
                 .add_modifier(Modifier::BOLD),

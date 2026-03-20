@@ -1,2 +1,2 @@
-# alf
-alf is the tmux of Bluesky
+# bmux
+bmux is the tmux of Bluesky

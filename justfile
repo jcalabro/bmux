@@ -1,4 +1,4 @@
-# alf — the tmux of Bluesky
+# bmux — the tmux of Bluesky
 
 default: lint test
 
@@ -56,8 +56,8 @@ watch:
 
 # Login with env vars and run
 login:
-    @echo "Set ALF_IDENTIFIER and ALF_PASSWORD env vars, then run:"
-    @echo "  just run -u \$ALF_IDENTIFIER -p \$ALF_PASSWORD"
+    @echo "Set BMUX_IDENTIFIER and BMUX_PASSWORD env vars, then run:"
+    @echo "  just run -u \$BMUX_IDENTIFIER -p \$BMUX_PASSWORD"
 
 # Run with a specific theme
 theme THEME:

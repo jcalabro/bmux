@@ -818,7 +818,7 @@ impl App {
 
         // Create a temp file, open the editor, read the result.
         let tmpdir = std::env::temp_dir();
-        let tmpfile = tmpdir.join("alf_compose.txt");
+        let tmpfile = tmpdir.join("bmux_compose.txt");
 
         // If we're in a compose pane, write the current draft.
         if let Some(pane) = self.focused_pane()

@@ -42,9 +42,9 @@ pub fn render_workspace_tabs(
 
     // Right-aligned info: app name, user handle, notification badge.
     let right_info = if unread_notifs > 0 {
-        format!("alf │ @{} │ {} ", user_handle, unread_notifs)
+        format!("bmux │ @{} │ {} ", user_handle, unread_notifs)
     } else {
-        format!("alf │ @{} ", user_handle)
+        format!("bmux │ @{} ", user_handle)
     };
 
     // Calculate padding.

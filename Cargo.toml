@@ -1,12 +1,12 @@
 [package]
-name = "alf"
+name = "bmux"
 version = "0.1.0"
 edition = "2024"
 description = "The tmux of Bluesky — a maximalist terminal Bluesky client"
 license = "MIT"
 
 [[bin]]
-name = "alf"
+name = "bmux"
 path = "src/main.rs"
 
 [dependencies]

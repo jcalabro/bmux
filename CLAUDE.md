@@ -19,7 +19,7 @@ Requires `libchafa` system package for `ratatui-image` (inline image rendering).
 
 ## Architecture
 
-**alf** is an actor-based async TUI Bluesky client. Six tokio tasks communicate through typed `mpsc` channels with no shared mutable state.
+**bmux** is an actor-based async TUI Bluesky client. Six tokio tasks communicate through typed `mpsc` channels with no shared mutable state.
 
 ### Message Flow
 

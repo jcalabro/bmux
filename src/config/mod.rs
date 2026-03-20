@@ -170,7 +170,7 @@ pub struct PaneConfig {
 pub fn config_dir() -> PathBuf {
     dirs::config_dir()
         .unwrap_or_else(|| PathBuf::from("~/.config"))
-        .join("alf")
+        .join("bmux")
 }
 
 /// Load config from the default location, or return defaults if no file exists.
@@ -270,6 +270,6 @@ fg = "#ffffff"
     #[test]
     fn test_config_dir() {
         let dir = config_dir();
-        assert!(dir.ends_with("alf"));
+        assert!(dir.ends_with("bmux"));
     }
 }
